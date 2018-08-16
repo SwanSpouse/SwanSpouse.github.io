@@ -1,5 +1,5 @@
 ---
-title: fail-fast
+title: fail-fast机制
 date: 2018-08-17 00:04:01
 tags:
   - java
