@@ -10,7 +10,7 @@ tags:
 
 #### **volatile**
 
-**volatile的本意是“易变的”。**volatile关键字修饰符是一种类型编译器，用它声明的类型变量表示可以被某些未知的因素更改，比如：操作系统、硬件或者其它线程等。**遇到这个关键字声明的变量，编译器对访问该变量的代码就不再进行优化，从而可以提供对特殊地址的稳定访问。**当要求使用volatile 声明的变量的值的时候，系统总是重新从它所在的内存读取数据，即使它前面的指令刚刚从该处读取过数据。而且读取的数据立刻被保存。volatile 指出 i是随时可能发生变化的，每次使用它的时候必须从i的地址中读取。对于volatile类型的变量，系统每次用到他的时候都是直接从对应的内存当中提取，而不会利用cache当中的原有数值，以适应它的未知何时会发生的变化。
+**volatile的本意是“易变的”。**volatile关键字修饰符是一种类型编译器，用它声明的类型变量表示可以被某些未知的因素更改，比如：操作系统、硬件或者其它线程等。**遇到这个关键字声明的变量，编译器对访问该变量的代码就不再进行优化，从而可以提供对特殊地址的稳定访问。**当要求使用volatile 声明的变量的值的时候，系统总是重新从它所在的内存读取数据，即使它前面的指令刚刚从该处读取过数据。而且读取的数据立刻被保存。volatile 指出 i是随时可能发生变化的，每次使用它的时候必须从i的地址中读取。对于volatile类型的变量，系统每次用到他的时候都是直接从对应的内存当中提取，而不会利用cache当中的原有数值，以保证每次取出的值都是最新的。
 
 #### fail-fast
 
@@ -48,9 +48,9 @@ tags:
 protected transient int modCount = 0;
 ```
 
-从上面的注释中可以知道，modCount的值会在当底层数组内容被修改的时候，如进行add, remove, clear等操作的时候被改变。
+从上面的注释中可以知道，modCount的值会在底层数组内容被修改的时候(如进行add, remove, clear等操作的时候)被修改。
 
-在每次新建Iterator对象的时候，都会用上面的modCount初始化Iterator中的expectedModCount值。并在进行next、remove等操作的时候利用checkForComodification\(\)对 expectedModCount 是否和 modCounts 是否相等进行检查。如果不相等，则抛出ConcurrentModificationException 异常。
+在每次新建Iterator对象的时候，都会用上面的modCount初始化Iterator中的expectedModCount值。并在进行next、remove等操作的时候利用checkForComodification\(\)对 expectedModCount 和 modCounts 是否相等进行检查。如果不相等，则抛出ConcurrentModificationException 异常。
 
 #### fail-fast解决办法
 
