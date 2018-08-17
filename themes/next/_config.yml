@@ -48,6 +48,7 @@ index_with_subtitle: false
 menu:
   home: /
   #categories: /categories/
+  archives: /archives/
   tags: /tags/
   booklist: /booklist
   about: /about
@@ -64,6 +65,7 @@ menu_icons:
   #KeyMapsToMenuItemKey: NameOfTheIconFromFontAwesome
   home: home
   about: user
+  archives: th
   categories: th
   schedule: calendar
   tags: tags

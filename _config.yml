@@ -53,6 +53,11 @@ index_generator:
   per_page: 20
   order_by: -date
 
+archive_generator:
+  per_page: 20  //为0时表示不分页全展示
+  yearly: true  //按年生成归档
+  monthly: true //按月生成归档
+
 # Category & Tag
 default_category: uncategorized
 category_map:
