@@ -19,8 +19,8 @@ date: 2018-08-03 22:41:07
 
 #### Reading
 *  golang source code
+* 《八次危机》 温铁军
 * 《Docker 技术入门与实战》
-* 《程序员的数学》
 
 #### 买了，但是
 * 《Netty 权威指南》
