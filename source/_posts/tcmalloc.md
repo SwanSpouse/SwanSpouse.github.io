@@ -2,7 +2,7 @@
 title: tcmalloc简介
 date: 2018-08-17 22:48:53
 tags:
-  -golang
+  - golang
 ---
 
 ### 系统内存管理
