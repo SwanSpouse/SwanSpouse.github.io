@@ -1,5 +1,5 @@
 ---
-title: Url参数的Sign签名
+title: url参数的Sign签名
 date: 2018-08-20 14:32:12
 tags:
   - business-logic
@@ -37,7 +37,7 @@ http://api.test.com/getproducts?param2=value2&param1=value1&sign=BCC7C71CF93F9CD
 
 在上述的请求中，加入时间戳，同时设定一段的过期时间，例如30s。这样就算是别人可以获取到完整的请求链接，有效期也仅仅是也有限的几十秒。
 
-因为考虑到当发生错误的时候，我们可以使用用户的请求log对bug进行复现。所以这部分功能后台没有开发。
+因为考虑到当发生错误的时候，我们可以使用用户的请求log对bug进行复现。所以不是要求特别高的特殊系统，不会实现此功能。
 
 #### 请求的隐私性
 

@@ -17,45 +17,44 @@ tags:
 
 ### tcmalloc简介
 
-tcmalloc 在就是上面描述的语言层级中，由Google开源的内存管理库。其他常见的内存管理库还有glibc的ptmalloc和google的jemalloc。相比于ptmalloc，tcmalloc性能更好，特别适用于高并发场景。 作为glibc malloc的替代品。目前已经在chrome、safari等知名软件中运用。
+tcmalloc(thread-caching malloc)在就是上面描述的语言层级中，由Google开源的内存管理库。其他常见的内存管理库还有glibc的ptmalloc和google的jemalloc。相比于ptmalloc，tcmalloc性能更好，特别适用于高并发场景。 作为glibc malloc的替代品。目前已经在chrome、safari等知名软件中运用。
 
 根据官方测试报告，ptmalloc在一台2.8GHz的P4机器上（对于小对象）执行一次malloc及free大约需要300纳秒。而tcmalloc的版本同样的操作大约只需要50纳秒。
 
 ### tcmalloc思想
 
-tcmalloc的基本思想是多级内存管理。前面层次内存分配失败，则向后面层次申请；前面层次内存释放过多，则回收到后面层次。
+tcmalloc的基本思想是线程私有缓存和全局缓存。
 
-### tcmalloc实现
+线程私有缓存和全局缓存主要有以下两点不同：
 
-如上述所说，在tcmalloc内存管理的体系之中，一共有三个层次：ThreadCache、CentralCache、PageHeap。
+* 线程私有性：每个线程都有自己的私有缓存，理想情况下，每个线程的内存管理都在自身的私有缓存中进行。没有了线程之间的竞争，所以效率非常高；
 
-分配内存和释放内存的时候都是按从前到后的顺序，在各个层次中去进行尝试。基本思想是：前面的层次分配内存失败，则从下一层分配一批补充上来；前面的层次释放了过多的内存，则回收一批到下一层次。
+* 内存分配粒度：在tcmalloc里面，线程私有缓存和全局缓存都有两种内存粒度：object和span。span是连续内存page，而object则是由span切成的小块。object的尺寸被预设了一些规格（class），比如16Byte、32Byte等等，同一个span切出来的object都是相同的规格。
 
-这几个层次从前到后，主要有这么几方面的变化：
+### tcmalloc分配策略
 
-* 线程私有性：ThreadCache，顾名思义，是每个线程一份的。理想情况下，每个线程的内存需求都在自己的ThreadCache里面完成，线程之间不需要竞争，非常高效。而CentralCache和PageHeap则是全局的；
+tcmalloc 在对于small object(<32KB)和 big object(>=32KB)的分配上采取了不同的分配策略。
 
-* 内存分配粒度：在tcmalloc里面，有两种粒度的内存，object和span。span是连续page的内存，而object则是由span切成的小块。object的尺寸被预设了一些规格（class），比如16字节、32字节、等等，同一个span切出来的object都是相同的规格。object不大于256K，超大的内存将直接分配span来使用。ThreadCache和CentralCache都是管理object，而PageHeap管理的是span。
+#### small object allocation
 
-#### ThreadCache
+![ThreadCache](https://s1.imgsha.com/2018/08/20/1AenW4.gif)
 
-维护一组FreeList，针对每一种class的object；
+在小对象分配时，首先会在线程私有缓存中根据对象的大小来确定需要分配的object class，接着在相应class的 free object list中寻找第一个不为空的object进行分配；
 
-#### CentralCache
-
-里面有多个CentralFreeList，针对每一种class的object。
-
-CentralFreeList并不像ThreadCache那样直接维护object的链表，而是维护span的链表，每个span下面再挂一个由这个span切分出来的object的链。这样做便于在span内的object是否都已经free的情况下，将span整体回收给PageHeap（span.refcount_记录了被分配出去的object个数）。但是这样一来，每个回收回来的object都需要寻找自己所属的span，然后才能挂进freelist，过程会比较耗时。
-
-所以CentralFreeList里面还搞了一个cache（tc_slots_），回收回来的一批object先往cache里面塞，塞不下了再回收进span的objects链。分配object给ThreadCache时也是先尝试在cache里面拿，没了再去span里面分配。
-
-另外，CentralFreeList里的span链表其实是有两个：nonempty_和empty_，根据span的objects链是否有空闲，放入对应链表。这样就避免了在分配时去判断span是否为空，只需要在由空变非空、或者由非空变空时移动一下span。
-
-#### PageHeap
-维护了两个很重要的东西：page到span的映射关系，和空闲span的伙伴系统。
+若发现没有不为空的object，则会向全局缓存进行申请一批同样大小的object，将他们放到线程私有缓存中，然后再进行分配。
 
 
+#### big object allocation
+
+![big object allocation](https://s1.imgsha.com/2018/08/20/1Ae9hf.gif)
+
+大对象直接在全局缓存中来进行分配。全局缓存的结构如上图所示，为单链表数组。数组长度为256，分别对应1 page大小(4KB), 2 page大小(8KB).... 最后一个对应>=256page的大小。
+
+在分配时，首先计算大对象需要的page，假如需要K个page，则会在数组的第K个free list中寻找满足条件的内存，若没有满足条件的内存，则会在第K+1个free list中继续寻找，如果一直找到256都没有合适的内存，则会向操作系统申请内存。
+
+对于在第 K+N个 free list中找到的满足条件的内存，分配后剩下的pages，会被放入到相应的free list中去。
 
 ### reference
+
+* http://goog-perftools.sourceforge.net/doc/tcmalloc.html
 * https://blog.csdn.net/junlon2006/article/details/77854898
-* https://yq.aliyun.com/articles/6045
