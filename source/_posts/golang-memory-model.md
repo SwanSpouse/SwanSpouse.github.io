@@ -1,5 +1,5 @@
 ---
-title: golang内存模型
+title: golang堆内存管理
 date: 2018-08-22 00:03:03
 tags:
   - golang
@@ -13,10 +13,13 @@ golang的runtime system同样实现了一套内存池机制，接管了所有的
 
 ### 核心数据结构
 
-mheap: mheap管理向os申请、释放、组织mspan；
-mcentral: mcentral按照自己管理的块大小将mspan分配给mcache；
-mspan: mspan是数据的实际存储区域，按照mcentral管理的块规格(class)被切分成小块。
-mcache: mcache管理不同规格(class)的mspan：规格相同的mspan被链接到同一个链表中。
+这里主要涉及的是golang 堆内存的管理，stack内存的管理相对来说比较简单，因为stack中的对象生命周期有限，随着退栈所有对象都会被释放。
+
+golang 堆内存的主要数据结构:
+* mheap: mheap管理向os申请、释放、组织mspan；
+* mcentral: mcentral按照自己管理的块大小将mspan分配给mcache；
+* mspan: mspan是数据的实际存储区域，按照mcentral管理的块规格(class)被切分成小块。
+* mcache: mcache管理不同规格(class)的mspan：规格相同的mspan被链接到同一个链表中。
 
 ![go heap model](https://s1.imgsha.com/2018/08/22/1aPAcC.png)
 
@@ -95,10 +98,52 @@ if noscan && size < maxTinySize {
 
 #### big object allocation
 
+对于32KB的对象，跳过mcache和mcentral，直接在mheap上进行分配。
 
-
+```golang
+var s *mspan
+// 大对象直接在mheap上进行分配，必定是一次heavy的操作，所以这里shouldhelpgc直接被置为true
+shouldhelpgc = true
+systemstack(func() {
+  // 大对象分配
+  s = largeAlloc(size, needzero, noscan)
+})
+s.freeindex = 1
+s.allocCount = 1
+x = unsafe.Pointer(s.base())
+size = s.elemsize
+```
 
 #### small object allocation
+
+对于 >=16B && <= 32KB的对象
+
+* 如果 mcache 对应的 size class 的 span 已经没有可用的块，则向 mcentral 请求。
+* 如果 mcentral 也没有可用的块，则向 mheap 申请，并切分。
+* 如果 mheap 也没有合适的 span，则向操作系统申请。
+
+```golang
+// 找到合适的sizeclass(规格)，这里的处理方式很巧妙
+var sizeclass uint8
+if size <= smallSizeMax-8 {
+  sizeclass = size_to_class8[(size+smallSizeDiv-1)/smallSizeDiv]
+} else {
+  sizeclass = size_to_class128[(size-smallSizeMax+largeSizeDiv-1)/largeSizeDiv]
+}
+size = uintptr(class_to_size[sizeclass])
+spc := makeSpanClass(sizeclass, noscan)
+span := c.alloc[spc]
+// 和上面tiny object的分配采用同样的方法。向mcache,mcentral,mheap,os依次进行申请。
+v := nextFreeFast(span)
+if v == 0 {
+  v, span, shouldhelpgc = c.nextFree(spc)
+}
+x = unsafe.Pointer(v)
+if needzero && span.needzero != 0 {
+  // 对申请到的地址进行清零
+  memclrNoHeapPointers(unsafe.Pointer(v), size)
+}
+```
 
 ### reference
 * https://tracymacding.gitbooks.io/implementation-of-golang/content/
