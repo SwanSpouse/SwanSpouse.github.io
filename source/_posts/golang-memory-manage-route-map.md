@@ -13,7 +13,7 @@ tags:
 
 3. [tcmalloc](https://swanspouse.github.io/2018/08/17/tcmalloc/) : golang 内存管理算法的思想来源。
 
-4. [golang 栈内存管理](https://swanspouse.github.io/2018/08/22/golang-stack/): 栈内存管理的主要数据结构，各个数据结构的作用以及分配算法。
+4. [golang 栈内存管理](https://swanspouse.github.io/2018/08/23/golang-stack/): 栈内存管理的主要数据结构，各个数据结构的作用以及分配算法。
 
 5. [golang 堆内存管理、内存分配算法](https://swanspouse.github.io/2018/08/22/golang-memory-model/) : golang内存管理的主要数据结构，各个主要数据结构的作用以及针对不同的对象，采用的不同分配算法。
 
