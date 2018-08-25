@@ -5,7 +5,7 @@ tags:
   - golang
 ---
 
-### 内管管理
+### 内存管理
 
 对于内置runtime system的编程语言，通常会抛弃传统的内存分配方式，改为自主管理内存。这样可以完成类似预分配、内存池、垃圾回收等操作，以避开频繁地向操作系统申请、释放内存，产生过多的系统调用而导致的性能问题。
 
@@ -19,7 +19,7 @@ golang 堆内存的主要数据结构:
 * mheap: mheap管理向os申请、释放、组织mspan；
 * mcentral: mcentral按照自己管理的块大小将mspan分配给mcache；
 * mspan: mspan是数据的实际存储区域，按照mcentral管理的块规格(class)被切分成小块。
-* mcache: mcache管理不同规格(class)的mspan：规格相同的mspan被链接到同一个链表中。
+* mcache: mcache中的alloc管理不同规格(class)的mspan：规格相同的mspan被链接到同一个链表中。
 
 ![go heap model](https://s1.imgsha.com/2018/08/22/1aPAcC.png)
 
@@ -146,5 +146,6 @@ if needzero && span.needzero != 0 {
 ```
 
 ### reference
+* golang soruce code 1.10
 * https://tracymacding.gitbooks.io/implementation-of-golang/content/
 * http://legendtkl.com/2017/04/02/golang-alloc/
