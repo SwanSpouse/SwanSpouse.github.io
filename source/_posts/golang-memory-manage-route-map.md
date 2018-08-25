@@ -17,8 +17,8 @@ tags:
 
 5. [golang 堆内存管理、内存分配算法](https://swanspouse.github.io/2018/08/22/golang-memory-model/) : golang内存管理的主要数据结构，各个主要数据结构的作用以及针对不同的对象，采用的不同分配算法。
 
-6. 对象存活性判断: 对比java和常见的判断对象是否存活的方法。了解golang中是怎么样对对象是否存活进行判断的。
+6. [对象存活性判断](https://swanspouse.github.io/2018/08/25/golang-gc-object/): 常见的判断对象是否存活的方法
 
-7. 常见垃圾收集算法以及golang中的垃圾回收算法: 对比Java Jvm内存回收。
+7. [常见垃圾收集算法以及golang中的垃圾回收算法](https://swanspouse.github.io/2018/08/25/golang-gc-algorithm/): 对比Java Jvm内存回收。
 
-8. golang各个版本垃圾回收机制的变化、改进。
+8. [golang gc 迭代](https://swanspouse.github.io/2018/08/25/golang-gc-iterations/)golang各个版本垃圾回收机制的变化、改进
