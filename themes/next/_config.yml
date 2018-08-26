@@ -50,8 +50,8 @@ menu:
   #categories: /categories/
   archives: /archives/
   tags: /tags/
-  booklist: /booklist
-  about: /about
+  booklist: /booklist/
+  about: /about/
   #sitemap: /sitemap.xml
   #commonweal: /404/
 
