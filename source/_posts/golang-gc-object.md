@@ -5,6 +5,7 @@ tags:
   - golang
   - java
   - jvm
+  - gc
 ---
 
 ### 对象是否存活判断

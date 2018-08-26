@@ -3,6 +3,7 @@ title: golang堆内存管理
 date: 2018-08-22 00:03:03
 tags:
   - golang
+  - gc
 ---
 
 ### 内存管理

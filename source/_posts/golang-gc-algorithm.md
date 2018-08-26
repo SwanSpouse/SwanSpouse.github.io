@@ -5,6 +5,7 @@ tags:
   - golang
   - java
   - jvm
+  - gc
 ---
 
 ### 垃圾回收算法

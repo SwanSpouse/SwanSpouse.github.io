@@ -3,6 +3,7 @@ title: golang逃逸分析
 date: 2018-08-21 23:09:49
 tags:
   - golang
+  - gc
 ---
 
 #### 逃逸分析
