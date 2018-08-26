@@ -42,5 +42,5 @@ tags:
 
 ### reference
 
-* 《操作系统原理》
+* 《操作系统概念 第六版》
 * http://www.sizeofvoid.net/goroutine-under-the-hood/
