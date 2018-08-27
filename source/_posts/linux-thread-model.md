@@ -1,12 +1,12 @@
 ---
-title: linux-thread-model
+title: linux线程模型
 date: 2018-08-26 21:06:16
 tags:
   - linux
   - goroutine
 ---
 
-### Linux线程模型
+### 用户线程、内核线程
 
 #### 用户线程
 
