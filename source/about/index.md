@@ -12,7 +12,7 @@ date: 2018-08-03 00:53:38
 
 #### Education and Career
 
-* 2017.04 - now Software Engineer at CreditEase Zhiwang Team
+* 2017.04 - now Software Engineer at Zhiwang Team CreditEase 
 * 2014.09 - 2017.04 Study at State Key Laboratory Of Networking and Switching Technology (BUPT)
 * 2010.09 - 2014.06 Study at School Of Computer Science (BUPT)
 
