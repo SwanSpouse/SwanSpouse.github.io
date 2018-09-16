@@ -35,6 +35,10 @@ import java.io.*;
  * unsynchronized and permits nulls.)  This class makes no guarantees as to
  * the order of the map; in particular, it does not guarantee that the order
  * will remain constant over time.
+
+HashTable是Map接口的一个实现。 HashTable支持了所有的Map操作，同时允许存储null值。
+除了HashMap不是线程安全的，并且不允许null值，HashMap和HashTable大致相同。
+此类不保证映射的顺序，特别是它不保证该顺序恒久不变。
  *
  * <p>This implementation provides constant-time performance for the basic
  * operations (<tt>get</tt> and <tt>put</tt>), assuming the hash function
@@ -44,7 +48,11 @@ import java.io.*;
  * of key-value mappings).  Thus, it's very important not to set the initial
  * capacity too high (or the load factor too low) if iteration performance is
  * important.
- *
+
+ 如果hash函数能够将元素均匀的分散在每个bucket中，对于get和put这样的基本操作，HashMap能够在常数时间内完成。
+ 对集合进行迭代所花费的时间同HashMap实例中bucket的个数与HashMap中键值对之和有关。
+ 因此，如果将迭代器的效率很重要的话，不建议将初始容量设置过大以及load factor设置的过小。
+
  * <p>An instance of <tt>HashMap</tt> has two parameters that affect its
  * performance: <i>initial capacity</i> and <i>load factor</i>.  The
  * <i>capacity</i> is the number of buckets in the hash table, and the initial
@@ -55,7 +63,12 @@ import java.io.*;
  * current capacity, the hash table is <i>rehashed</i> (that is, internal data
  * structures are rebuilt) so that the hash table has approximately twice the
  * number of buckets.
- *
+
+  影响一个HashMap实例的效率有两个因素，一个是初始大小，一个是load factor。初始容量是指HashMap在创建
+  时的大笑。load factor(负荷因子)表示：当HashMap中的元素个数/HashMap的容量 > laod factor的时候，
+  HashMap的容量就会自动增加。当HashMap中的元素个数大于load factor和当前容量的乘积时，将触发HashMap
+  的Rehash过程（内部数据结构变化），当rehash过程结束后，HashMap的容量将变成大约原来两倍的大小。
+
  * <p>As a general rule, the default load factor (.75) offers a good tradeoff
  * between time and space costs.  Higher values decrease the space overhead
  * but increase the lookup cost (reflected in most of the operations of the
@@ -65,12 +78,20 @@ import java.io.*;
  * number of rehash operations.  If the initial capacity is greater
  * than the maximum number of entries divided by the load factor, no
  * rehash operations will ever occur.
- *
+
+ 通常情况下，load factor的默认值为0.75，这样能够在时间和空间上维持一个良好的平衡。
+ load factor 过高可以减少使用的空间，但是增加了查找元素的时间花费（体现在HashMap中的大部分操作上，
+ 包括get和put）。load factor值的设定需要在HashMap初始化的时候根据期望防止的元素个数来进行考虑。
+ 如果HashMap的初始化容量比其中最多时候的元素个数除以load factor还多，将不会发生rehash操作。
+
  * <p>If many mappings are to be stored in a <tt>HashMap</tt> instance,
  * creating it with a sufficiently large capacity will allow the mappings to
  * be stored more efficiently than letting it perform automatic rehashing as
  * needed to grow the table.
- *
+
+如果要在HashMap中存储多个键值对，在初始化的时候设定一个足够大小的初试容量。使得这些键值对可以
+更高效的存储在HashMap中，避免进行rehash来使HashMap容量增长。
+
  * <p><strong>Note that this implementation is not synchronized.</strong>
  * If multiple threads access a hash map concurrently, and at least one of
  * the threads modifies the map structurally, it <i>must</i> be
@@ -85,7 +106,12 @@ import java.io.*;
  * method.  This is best done at creation time, to prevent accidental
  * unsynchronized access to the map:<pre>
  *   Map m = Collections.synchronizedMap(new HashMap(...));</pre>
- *
+
+ 强调一下HashMap不是线程安全的。如果多个线程访问同一个HashMap，同时至少有一个线程改变了HashMap的结构
+ 那么必须显示的进行同步。（使用synchronized) (改变HashMap结构的操作包括：增加或者删除一个或者多个键值对，
+ 仅仅改变HashMap中key对应的值，不算做HashMap结构上的改变。) 通常情况下，会通过给某些对象加锁，括住
+ HashMap来保证HashMap的线程安全。
+
  * <p>The iterators returned by all of this class's "collection view methods"
  * are <i>fail-fast</i>: if the map is structurally modified at any time after
  * the iterator is created, in any way except through the iterator's own
@@ -94,7 +120,12 @@ import java.io.*;
  * modification, the iterator fails quickly and cleanly, rather than risking
  * arbitrary, non-deterministic behavior at an undetermined time in the
  * future.
- *
+
+ 所有集合类的迭代器都是fast-fail机制的。如果在interator创建之后的任意时刻，HashMap的结构被改变了，
+ 无论通过哪种方式改变了HashMap的结构，除了iterator本身调用了remove方法。interator都会抛出一个
+ ConcurrentModificationException。因此，为防止对HashMap的并发更改，interator 会fail-fast。
+ 而不是带着风险在未来不确定的时间进行不确定的操作。
+
  * <p>Note that the fail-fast behavior of an iterator cannot be guaranteed
  * as it is, generally speaking, impossible to make any hard guarantees in the
  * presence of unsynchronized concurrent modification.  Fail-fast iterators
@@ -102,7 +133,10 @@ import java.io.*;
  * Therefore, it would be wrong to write a program that depended on this
  * exception for its correctness: <i>the fail-fast behavior of iterators
  * should be used only to detect bugs.</i>
- *
+
+ fail-fast行为不是一定保证发生的。通常来讲，可以未同步的并发更改中，可能抛出fail-fast异常。
+ 因此在代码中凭借fail-fast机制来保证正确性是不对的。所以，fail-fast机制只是用来检查可能发生的bug。
+
  * <p>This class is a member of the
  * <a href="{@docRoot}/../technotes/guides/collections/index.html">
  * Java Collections Framework</a>.
@@ -122,13 +156,9 @@ import java.io.*;
  * @since   1.2
  */
 
-public class HashMap<K,V>
-    extends AbstractMap<K,V>
-    implements Map<K,V>, Cloneable, Serializable
-{
-
+public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneable, Serializable {
     /**
-     * The default initial capacity - MUST be a power of two.
+     * The default initial capacity - MUST be a power of two. 
      */
     static final int DEFAULT_INITIAL_CAPACITY = 1 << 4; // aka 16
 
