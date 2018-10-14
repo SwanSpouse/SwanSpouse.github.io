@@ -1,5 +1,5 @@
 ---
-title: golang grpc sample
+title: go grpc 样例
 date: 2018-10-14 16:32:12
 tags:
   - go
@@ -204,8 +204,6 @@ func (s *routeGuideServer) ListFeatures(rect *pb.Rectangle, stream pb.RouteGuide
 在上述方法中，server端将所有符合条件的Feature返回给client，使用Send()方法将它们写入 RouteGuide_ListFeaturesServer 中。 在最后，和Simple RPC中的一样，server返回一个空error来通知gRPC已经写完response的数据了。如果在调用过程中出现了任何错误，serve会返回一个非空的error，gRPC会将error转换成一个合适的RPC状态返回给client。
 
 #### Client-side streaming RPC
-
-Now let's look at something a little more complicated: the client-side streaming method RecordRoute, where we get a stream of Points from the client and return a single RouteSummary with information about their trip. As you can see, this time the method doesn't have a request parameter at all. Instead, it gets a RouteGuide_RecordRouteServer stream, which the server can use to both read and write messages - it can receive client messages using its Recv() method and return its single response using its SendAndClose() method.
 
 在RecordRoute中，server从client端接收到多个Point对象并返回一个RouteSummary对象。如下代码所示，在本次请求中只有一个RouteGuide_RecordRouteServer对象，使用RouteGuide_RecordRouteServer中的Recv()方法接受对象，并通过SendAndClose()方法返回结果。
 
