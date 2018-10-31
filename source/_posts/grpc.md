@@ -72,8 +72,6 @@ rpc ListFeatures(Rectangle) returns (stream Feature) {}
 
 #### A Client-side streaming RPC 客户端流式RPC
 
-where the client writes a sequence of messages and sends them to the server, again using a provided stream. Once the client has finished writing the messages, it waits for the server to read them all and return its response. You specify a client-side streaming method by placing the stream keyword before the request type.
-
 A client-side streaming RPC: 多个client request对应一个server response。 通过在 request 类型之前加上stream 关键字来实现客户端流式方法。
 
 ```go
@@ -83,8 +81,6 @@ rpc RecordRoute(stream Point) returns (RouteSummary) {}
 ```
 
 #### A Bidirectional Streaming RPC  双向流式RPC
-
-A bidirectional streaming RPC where both sides send a sequence of messages using a read-write stream. The two streams operate independently, so clients and servers can read and write in whatever order they like: for example, the server could wait to receive all the client messages before writing its responses, or it could alternately read a message then write a message, or some other combination of reads and writes. The order of messages in each stream is preserved. You specify this type of method by placing the stream keyword before both the request and the response.
 
 A bidirectional streaming RPC: 多个 client request对应多个server response。通过在 request 和 response类型前都加上 stream关键字来实现双向流式RPC。
 
