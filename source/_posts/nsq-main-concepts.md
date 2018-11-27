@@ -112,6 +112,6 @@ nsq
 
 #### reference
 
-* nsq source code: https://github.com/nsqio/nsq
+* NSQ源码: https://github.com/nsqio/nsq
 
 * https://juejin.im/entry/59ddae8151882578bb480d0e
