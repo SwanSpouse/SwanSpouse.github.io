@@ -7,6 +7,9 @@ tags:
 nsq 代码目录结构。
 nsqd 相关解读。 topic channel 等等这些基本概念。
 这里先说diskqueue吧。
+
+* 关于disk queue 的思考，disk queue中wirteChan和readChan都是不带缓冲区的channel。为啥呢？带有缓冲区不是可以提高消息处理的效率吗？是处于消息可靠性的角度来考虑吗？
+
 nsqd 写入消息、消费消息。
 nsqd 保证消息可靠性。
 nsqd 和 nsqloopup 直接的交互
