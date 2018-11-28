@@ -4,6 +4,32 @@ tags:
     - NSQ
 ---
 
+
+#### 解决topic和channel之间传递数据的问题
+
+启动了NSQD, 然后把mem-queue-size 设置成了3。然后往里面写了5条数据，查看.dat文件发现:
+
+2
+0,0
+0,102
+
+这个是符合我的正常认知的。3条消息在内存中，然后2条消息已经被持久化到磁盘中。
+
+[nsqd] 2018/11/28 22:30:14.331227 INFO: nsqd v1.1.0 (built w/go1.8)
+[nsqd] 2018/11/28 22:30:14.331329 INFO: ID: 294
+[nsqd] 2018/11/28 22:30:14.331359 INFO: NSQ: persisting topic/channel metadata to nsqd.dat
+[nsqd] 2018/11/28 22:30:14.332137 INFO: TCP: listening on [::]:4150
+[nsqd] 2018/11/28 22:30:14.332189 INFO: HTTP: listening on [::]:4151
+[nsqd] 2018/11/28 22:30:24.923213 INFO: TOPIC(lmj): created
+[nsqd] 2018/11/28 22:30:24.923288 INFO: MINGJI DEBUG ===========> topic:current message was sent to memoryMsgChan. 111 This is a Message
+[nsqd] 2018/11/28 22:30:24.923395 INFO: NSQ: persisting topic/channel metadata to nsqd.dat
+[nsqd] 2018/11/28 22:30:24.995957 INFO: MINGJI DEBUG ===========> topic:current message was sent to memoryMsgChan. 222 This is a Message
+[nsqd] 2018/11/28 22:30:25.986699 INFO: MINGJI DEBUG ===========> topic:current message was sent to memoryMsgChan. 333 This is a Message
+[nsqd] 2018/11/28 22:31:04.599047 INFO: MINGJI DEBUG ===========> topic:current message was sent to backendMsgChan. 444 This is a Message
+[nsqd] 2018/11/28 22:31:04.599212 INFO: DISKQUEUE(lmj): writeOne() opened lmj.diskqueue.000000.dat
+[nsqd] 2018/11/28 22:31:04.599266 INFO: DISKQUEUE(lmj): readOne() opened lmj.diskqueue.000000.dat
+[nsqd] 2018/11/28 22:31:34.349515 INFO: MINGJI DEBUG ===========> topic:current message was sent to backendMsgChan. 555 This is a Message
+
 #### consumer能否在启动之后，能否消费到之前生产者产生的消息。
 
 1. 首先启动NSQD进程，然后将内存缓冲区设置为0。./nsqd --mem-queue-size=0  
@@ -34,4 +60,4 @@ receive 127.0.0.1:4150 message: 222 This is a Message
 
 现在的状态是第一次可以消费到所有的消息。但是后来的consumer就无法消费之前的数据了。
 
-这个时候就需要去翻翻NSQ的文档了。¥
+这个时候就需要去翻翻NSQ的文档了。
