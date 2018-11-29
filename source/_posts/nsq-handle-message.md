@@ -66,101 +66,87 @@ NSQD在接受到来自消费者的SUB（订阅）请求后，会找到指定Topi
 ```golang
 // protocol v2 处理客户端请求
 func (p *protocolV2) IOLoop(conn net.Conn) error {
-	var err error
-	var line []byte
-	var zeroTime time.Time
-	// 生成ClientID
-	clientID := atomic.AddInt64(&p.ctx.nsqd.clientIDSequence, 1)
-	// 初始化Client
-	client := newClientV2(clientID, conn, p.ctx)
-	// 将Client添加到NSQD
-	p.ctx.nsqd.AddClient(client.ID, client)
-	// synchronize the startup of messagePump in order
-	// to guarantee that it gets a chance to initialize
-	// goroutine local state derived from client attributes
-	// and avoid a potential race with IDENTIFY (where a client
-	// could have changed or disabled said attributes)
-	// 在这里首先要对client进行一些初始化的工作，为防止这些操作没有做完，所以在这里有个messagePumpStartedChan
-	messagePumpStartedChan := make(chan bool)
-	// 如果client是生产者，那么会在下面的for循环中不断向 memoryMsgChan 或者 backendMsgChan 写入message。
-	// 如果Client是消费者，那么会在messagePump中不断的从memoryMsgChan 或者 backendMsgChan 中读取message。
-	go p.messagePump(client, messagePumpStartedChan)
-	// 阻塞在这里，直到messagePump这个方法里面的准备工作都已经做好。
-	<-messagePumpStartedChan
+    // 在这里首先要对client进行一些初始化的工作，为防止这些操作没有做完，所以在这里有个messagePumpStartedChan
+    messagePumpStartedChan := make(chan bool)
+    // 如果client是生产者，那么会在下面的for循环中不断向 memoryMsgChan 或者 backendMsgChan 写入message。
+    // 如果Client是消费者，那么会在messagePump中不断的从memoryMsgChan 或者 backendMsgChan 中读取message。
+    go p.messagePump(client, messagePumpStartedChan)
+    // 阻塞在这里，直到messagePump这个方法里面的准备工作都已经做好。
+    <-messagePumpStartedChan
 
-	// 循环接收客户端发送过来的请求
-	for {
-		// 设置客户端超时时间
-		if client.HeartbeatInterval > 0 {
-			client.SetReadDeadline(time.Now().Add(client.HeartbeatInterval * 2))
-		} else {
-			client.SetReadDeadline(zeroTime)
-		}
-		// 读取客户端发送的请求
-		// ReadSlice does not allocate new space for the data each request
-		// ie. the returned slice is only valid until the next call to it
-		line, err = client.Reader.ReadSlice('\n')
-		if err != nil {
-			if err == io.EOF {
-				err = nil
-			} else {
-				err = fmt.Errorf("failed to read command - %s", err)
-			}
-			// 如果读到EOF，说明客户端已经关闭，则退出循环
-			break
-		}
-		// 忽略末尾的\n trim the '\n'
-		line = line[:len(line)-1]
-		// 忽略末尾的\r 如果存在的话 optionally trim the '\r'
-		if len(line) > 0 && line[len(line)-1] == '\r' {
-			line = line[:len(line)-1]
-		}
-		// 对参数进行解析
-		params := bytes.Split(line, separatorBytes)
-		p.ctx.nsqd.logf(LOG_DEBUG, "PROTOCOL(V2): [%s] %s", client, params)
+    // 循环接收客户端发送过来的请求
+    for {
+    	// 设置客户端超时时间
+    	if client.HeartbeatInterval > 0 {
+    		client.SetReadDeadline(time.Now().Add(client.HeartbeatInterval * 2))
+    	} else {
+    		client.SetReadDeadline(zeroTime)
+    	}
+    	// 读取客户端发送的请求
+    	// ReadSlice does not allocate new space for the data each request
+    	// ie. the returned slice is only valid until the next call to it
+    	line, err = client.Reader.ReadSlice('\n')
+    	if err != nil {
+    		if err == io.EOF {
+    			err = nil
+    		} else {
+    			err = fmt.Errorf("failed to read command - %s", err)
+    		}
+    		// 如果读到EOF，说明客户端已经关闭，则退出循环
+    		break
+    	}
+    	// 忽略末尾的\n trim the '\n'
+    	line = line[:len(line)-1]
+    	// 忽略末尾的\r 如果存在的话 optionally trim the '\r'
+    	if len(line) > 0 && line[len(line)-1] == '\r' {
+    		line = line[:len(line)-1]
+    	}
+    	// 对参数进行解析
+    	params := bytes.Split(line, separatorBytes)
+    	p.ctx.nsqd.logf(LOG_DEBUG, "PROTOCOL(V2): [%s] %s", client, params)
 
-		var response []byte
-		// 执行客户端发送过来的命令
-		response, err = p.Exec(client, params)
-		if err != nil {
-			ctx := ""
-			if parentErr := err.(protocol.ChildErr).Parent(); parentErr != nil {
-				ctx = " - " + parentErr.Error()
-			}
-			p.ctx.nsqd.logf(LOG_ERROR, "[%s] - %s%s", client, err, ctx)
+    	var response []byte
+    	// 执行客户端发送过来的命令
+    	response, err = p.Exec(client, params)
+    	if err != nil {
+    		ctx := ""
+    		if parentErr := err.(protocol.ChildErr).Parent(); parentErr != nil {
+    			ctx = " - " + parentErr.Error()
+    		}
+    		p.ctx.nsqd.logf(LOG_ERROR, "[%s] - %s%s", client, err, ctx)
 
-			// 若执行的过程中报错，向客户端返回错误
-			sendErr := p.Send(client, frameTypeError, []byte(err.Error()))
-			if sendErr != nil {
-				p.ctx.nsqd.logf(LOG_ERROR, "[%s] - %s%s", client, sendErr, ctx)
-				break
-			}
-			// errors of type FatalClientErr should forceably close the connection
-			if _, ok := err.(*protocol.FatalClientErr); ok {
-				break
-			}
-			continue
-		}
-		// 如果命令执行正常，则进行回复。
-		if response != nil {
-			err = p.Send(client, frameTypeResponse, response)
-			if err != nil {
-				err = fmt.Errorf("failed to send response - %s", err)
-				break
-			}
-		}
-	}
-	// 读到EOF或者出现错误则退出
-	p.ctx.nsqd.logf(LOG_INFO, "PROTOCOL(V2): [%s] exiting ioloop", client)
-	conn.Close()
-	close(client.ExitChan)
-	if client.Channel != nil {
-		// 客户端断开后，将client 从 channel中移除
-		client.Channel.RemoveClient(client.ID)
-	}
-	// 将Client从NSQD中移除
-	p.ctx.nsqd.RemoveClient(client.ID)
-	return err
+    		// 若执行的过程中报错，向客户端返回错误
+    		sendErr := p.Send(client, frameTypeError, []byte(err.Error()))
+    		if sendErr != nil {
+    			p.ctx.nsqd.logf(LOG_ERROR, "[%s] - %s%s", client, sendErr, ctx)
+    			break
+    		}
+    		// errors of type FatalClientErr should forceably close the connection
+    		if _, ok := err.(*protocol.FatalClientErr); ok {
+    			break
+    		}
+    		continue
+    	}
+    	// 如果命令执行正常，则进行回复。
+    	if response != nil {
+    		err = p.Send(client, frameTypeResponse, response)
+    		if err != nil {
+    			err = fmt.Errorf("failed to send response - %s", err)
+    			break
+    		}
+    	}
+    }
+    // 读到EOF或者出现错误则退出
+    p.ctx.nsqd.logf(LOG_INFO, "PROTOCOL(V2): [%s] exiting ioloop", client)
+    conn.Close()
+    close(client.ExitChan)
+    if client.Channel != nil {
+    	// 客户端断开后，将client 从 channel中移除
+    	client.Channel.RemoveClient(client.ID)
+    }
+    // 将Client从NSQD中移除
+    p.ctx.nsqd.RemoveClient(client.ID)
+    return err
 }
 ```
 
@@ -227,22 +213,20 @@ func (t *Topic) put(m *Message) error {
 func (p *protocolV2) SUB(client *clientV2, params [][]byte) ([]byte, error) {
     ....
     // 在这里首先会对参数的格式和非法性进行校验。保证参数无误。
-
-	var channel *Channel
-	for {
-		// 获取topic和channel，若不存在，则创建相应的Topic和Channel
-		topic := p.ctx.nsqd.GetTopic(topicName)
-		channel = topic.GetChannel(channelName)
-		break
-	}
+    for {
+    	// 获取topic和channel，若不存在，则创建相应的Topic和Channel
+    	topic := p.ctx.nsqd.GetTopic(topicName)
+    	channel = topic.GetChannel(channelName)
+    	break
+    }
 
     ....
 
-	// 把channel塞到SubEventChan中，把channel写入到client.SubEventChan中。
-	client.SubEventChan <- channel
-	// 订阅成功，返回OK
-	return okBytes, nil
-}
+    // 把channel塞到SubEventChan中，把channel写入到client.SubEventChan中。
+    client.SubEventChan <- channel
+    // 订阅成功，返回OK
+    return okBytes, nil
+    }
 
 ```
 
@@ -254,46 +238,46 @@ func (p *protocolV2) SUB(client *clientV2, params [][]byte) ([]byte, error) {
 func (p *protocolV2) messagePump(client *clientV2, startedChan chan bool) {
     ....
 
-	for {
-		// 最初的时候subChannel == nil，在这里将所有变量都进行重置
-		if subChannel == nil || !client.IsReadyForMessages() {
-			// the client is not ready to receive messages...
-			memoryMsgChan = nil
-			backendMsgChan = nil
-			flusherChan = nil
-			flushed = true
-		} else if flushed {
-			// last iteration we flushed.. do not select on the flusher ticker channel
-			// 如果subChannel不为空，并且已经flushed过了，利用channel对memoryMsgChan和backendMsgChan
-			// 进行初始化，这时客户端就可以从memoryMsgChan和backendMsgChan中消费消息了。
-			memoryMsgChan = subChannel.memoryMsgChan
-			backendMsgChan = subChannel.backend.ReadChan()
-			flusherChan = nil
-		}
+    for {
+    	// 最初的时候subChannel == nil，在这里将所有变量都进行重置
+    	if subChannel == nil || !client.IsReadyForMessages() {
+    		// the client is not ready to receive messages...
+    		memoryMsgChan = nil
+    		backendMsgChan = nil
+    		flusherChan = nil
+    		flushed = true
+    	} else if flushed {
+    		// last iteration we flushed.. do not select on the flusher ticker channel
+    		// 如果subChannel不为空，并且已经flushed过了，利用channel对memoryMsgChan和backendMsgChan
+    		// 进行初始化，这时客户端就可以从memoryMsgChan和backendMsgChan中消费消息了。
+    		memoryMsgChan = subChannel.memoryMsgChan
+    		backendMsgChan = subChannel.backend.ReadChan()
+    		flusherChan = nil
+    	}
 
-		select {
+    	select {
         // 在NSQD接收到来自客户端的SUB命令时，会将客户端订阅的channel写入client.subChannel
-		case subChannel = <-subEventChan:
-			// you can't SUB anymore
-			// 在这里对subChannel赋值，每个Client只能订阅一个Topic，所以这里subEventChan会被置为nil
-			subEventChan = nil
-		case b := <-backendMsgChan:
-			// backendMsgChan 收到消息，然后发送给Client
-			msg, err := decodeMessage(b)
-			err = p.SendMessage(client, msg)
-			if err != nil {
-				goto exit
-			}
-			flushed = false
-		case msg := <-memoryMsgChan:
+    	case subChannel = <-subEventChan:
+    		// you can't SUB anymore
+    		// 在这里对subChannel赋值，每个Client只能订阅一个Topic，所以这里subEventChan会被置为nil
+    		subEventChan = nil
+    	case b := <-backendMsgChan:
+    		// backendMsgChan 收到消息，然后发送给Client
+    		msg, err := decodeMessage(b)
+    		err = p.SendMessage(client, msg)
+    		if err != nil {
+    			goto exit
+    		}
+    		flushed = false
+    	case msg := <-memoryMsgChan:
             // memeoryMsgChan 收到消息，然后发送给Client
-			err = p.SendMessage(client, msg)
-			if err != nil {
-				goto exit
-			}
-			flushed = false
-		}
-	}
+    		err = p.SendMessage(client, msg)
+    		if err != nil {
+    			goto exit
+    		}
+    		flushed = false
+    	}
+    }
     ....
 }
 ```
@@ -312,41 +296,41 @@ func (t *Topic) messagePump() {
 
     // 首先会做一些初始化等工作
 
-	// main message loop
-	for {
+    // main message loop
+    for {
         // 这里会从memoryMsgChan和backendMsgChan中随机来获取消息，所以NSQD是不保证消息有序的。
-		select {
-		case msg = <-memoryMsgChan:
-		case buf = <-backendChan:
-			// 如果从backendChan里面获取的消息，需要首先进行decode
-			msg, err = decodeMessage(buf)
-			if err != nil {
-				t.ctx.nsqd.logf(LOG_ERROR, "failed to decode message - %s", err)
-				continue
-			}
-		case <-t.exitChan:
-			goto exit
-		}
-		// Topic会把自己的消息分发给其下面的所有channel
-		// 每个channel都会得到这个消息的复本。所以不同channel之间互不影响。
-		for i, channel := range chans {
-			chanMsg := msg
-			// copy the message because each channel
-			// needs a unique instance but...
-			// fastpath to avoid copy if its the first channel
-			// (the topic already created the first copy)
-			if i > 0 {
-				chanMsg = NewMessage(msg.ID, msg.Body)
-				chanMsg.Timestamp = msg.Timestamp
-				chanMsg.deferred = msg.deferred
-			}
-			// 将消息发送给Topic，和Topic接收消息相似，channel把消息写入其中的memoryMsgChan或者backendMsgChan
-			err := channel.PutMessage(chanMsg)
-			if err != nil {
-				t.ctx.nsqd.logf(LOG_ERROR, "TOPIC(%s) ERROR: failed to put msg(%s) to channel(%s) - %s", t.name, msg.ID, channel.name, err)
-			}
-		}
-	}
+    	select {
+    	case msg = <-memoryMsgChan:
+    	case buf = <-backendChan:
+    		// 如果从backendChan里面获取的消息，需要首先进行decode
+    		msg, err = decodeMessage(buf)
+    		if err != nil {
+    			t.ctx.nsqd.logf(LOG_ERROR, "failed to decode message - %s", err)
+    			continue
+    		}
+    	case <-t.exitChan:
+    		goto exit
+    	}
+    	// Topic会把自己的消息分发给其下面的所有channel
+    	// 每个channel都会得到这个消息的复本。所以不同channel之间互不影响。
+    	for i, channel := range chans {
+    		chanMsg := msg
+    		// copy the message because each channel
+    		// needs a unique instance but...
+    		// fastpath to avoid copy if its the first channel
+    		// (the topic already created the first copy)
+    		if i > 0 {
+    			chanMsg = NewMessage(msg.ID, msg.Body)
+    			chanMsg.Timestamp = msg.Timestamp
+    			chanMsg.deferred = msg.deferred
+    		}
+    		// 将消息发送给Topic，和Topic接收消息相似，channel把消息写入其中的memoryMsgChan或者backendMsgChan
+    		err := channel.PutMessage(chanMsg)
+    		if err != nil {
+    			t.ctx.nsqd.logf(LOG_ERROR, "TOPIC(%s) ERROR: failed to put msg(%s) to channel(%s) - %s", t.name, msg.ID, channel.name, err)
+    		}
+    	}
+    }
 
     ....
 }
