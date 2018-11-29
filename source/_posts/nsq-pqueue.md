@@ -1,18 +1,103 @@
 ---
 title: NSQ中的优先级队列
 tags:
-    - NSQ
+  - NSQ
+date: 2018-11-29 22:59:32
 ---
+
 
 在NSQ中，有两个最小堆实现的优先级队列，分别为: PriorityQueue，inFlightPqueue。分别用作延迟消息和消息的at least once机制。
 
 这里主要通过inFlightPqueue来说明最小堆实现的原理。
 
-#### 堆排序
+### 堆排序(以大顶堆为例)
 
-算法导论上。
+堆排序的基本操作:
 
-#### inFlightPqueue源码解析
+* MAX-HEAPIFY ： 运行时间为O(logn)，是保持最大堆性质的关键。
+* BUILD-MAX-HEAP：以线性时间运行，可以在无序的输入数组基础上构造出大顶堆。
+* HEAP-SORT：运行时间为O(nlogn)，对一个数组原地进行排序。
+* MAX-HEAP-INSER，HEAP-INCREASE-KEY, 运行时间均为O(logn)，可以让堆结构作为优先队列使用。
+
+#### MAX-HEAPIFY
+
+堆调整是一个自顶向下的过程。
+
+```golang
+
+MAX-HEAPIFY(A, i)
+  l = LEFT(i)
+  r = RIGHT(I)
+  if l <= heap-size[A] and A[l] > A[i]
+    then largest = l
+    else largest = i
+  if r <= heap-size[A] AND A[r] > A[largest]
+    then largest = r
+  if largest != i
+    then exchange A[i], A[largest]
+      MAX-HEAPIFY(A, largest)
+```
+
+#### BUILD-MAX-HEAP
+
+建立一个堆，是一个自底向上的过程。
+
+```golang
+
+BUILD-MAX-HEAP
+  heap-size[A] = length[A]
+  for i = length[A] / 2 downto 1
+    do MAX-HEAPIFY(A, i)
+
+```
+
+#### HEAP-SORT
+
+最开始利用BUILD-MAX-HEAP将输入数组构造成一个大顶堆。每次将根节点与A[n]互换来达到最终正确的位置。同时缩小堆的大小。
+新的根元素可能违背了最大堆的性质，这时通过MAX-HEAPIFY来进行调整，保持这一性质。不断重复此过程，直到堆的大小降到2。
+
+```golang
+
+HEAP-SORT(A)
+  BUILD-MAX-HEAP(A)
+  for i = length[A] downto 2
+    do exchange A[1], A[i]
+      heap-size[A] = heap-size[A] - 1
+      MAX-HEAPIFY(A, 1)
+
+```
+
+#### HEAP-INCREASE-KEY
+
+首先将i位置的元素更新为key。由于A[i]的增大可能会违反最大堆的性质。所以在过程中采用了向上调整的方法。
+
+```golang
+
+HEAP-INCREASE-KEY (A, i, key)
+  if key < A[i]
+    then error "new key is smaller than curent key"
+  A[i] = key
+  while i > 1 and A[PARENT(i)] < A[i]
+    do exchange A[i], A[PARENT(i)]
+      i = PARENT(i)
+
+```
+
+#### MAX-HEAP-INSERT
+
+向堆中插入元素。
+
+```golang
+MAX-HEAP-INSERT(A, key)
+  heap-size[A] = heap-size[A]+1
+  A[heap-size[A]] = -∞
+  HEAP-INCREASE-KEY(A, heap-size[A], key)
+```
+
+
+### inFlightPqueue源码解析
+
+可以将下面源码和上面堆排序的基本操作结合起来看。
 
 ``` golang
 
