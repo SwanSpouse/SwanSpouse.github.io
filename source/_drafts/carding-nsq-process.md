@@ -60,4 +60,36 @@ receive 127.0.0.1:4150 message: 222 This is a Message
 
 现在的状态是第一次可以消费到所有的消息。但是后来的consumer就无法消费之前的数据了。
 
-这个时候就需要去翻翻NSQ的文档了。
+这个时候就需要去翻翻NSQ的文档了。 这个和下面是一个问题。
+
+#### NSQD启动之后，除了第一个consumer之外无法消费到memoryMsgChan中的消息
+
+启动NSQD，设置mem-queue-size=3，然后往里面写5条数据。
+
+启动consumer，channel-1 能够消费到5条数据
+
+启动consumer, channel-2 一条数据都消费不到。为啥呢？不是应该能消费到磁盘里面的两条数据吗？
+
+就是应该一条数据都消费不到。因为消费到哪里的这个标识是存储在Topic里面的。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#### end

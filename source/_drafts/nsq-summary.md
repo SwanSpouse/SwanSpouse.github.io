@@ -14,15 +14,12 @@ nsqd 写入消息、消费消息。
 
 * 先说明整个消息从发布到消费的整个流程。
 
-这一阶段所遇到的一个问题： 一个Client在t时间点订阅了一个Topic，那么他能否收到这个Topic以前的数据。
-
 1. 启动nsqd ./nsqd --mem-queue-size=0  
 2. 创建一个Topic curl -X POST http://127.0.0.1:4151/topic/create\?topic\=lmj
 3. 往这个Topic里面发消息，curl -d "This is a Message" http://127.0.0.1:4151/pub\?topic\=lmj
 4. 这个时候启动一个消费者，看看能不能消费到刚刚接收到的信息。
 
 然后再把mem-queue-size调大。
-
 
 
 nsqd 保证消息可靠性。
