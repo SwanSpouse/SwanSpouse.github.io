@@ -5,10 +5,7 @@ tags:
 date: 2018-11-29 22:59:32
 ---
 
-
 在NSQ中，有两个最小堆实现的优先级队列，分别为: PriorityQueue，inFlightPqueue。分别用作延迟消息和消息的at least once机制。
-
-这里主要通过inFlightPqueue来说明最小堆实现的原理。
 
 ### 堆排序(以大顶堆为例)
 
@@ -95,7 +92,7 @@ MAX-HEAP-INSERT(A, key)
 ```
 
 
-### inFlightPqueue源码解析
+### InFlightPqueue源码解析
 
 可以将下面源码和上面堆排序的基本操作结合起来看。
 
