@@ -10,29 +10,21 @@ date: 2018-10-15 23:39:26
 
 channel是goroutine之间的通信机制，同时，channel也是实现复杂高并发程序的基础。在这里会对channel内部的工作机制，包括channel如何被调度器调度、内存管理系统等进行深入的说明。
 
-只有少部分人使用go语言是因为它在并发方面的优势。channel不仅有用，而且还很有趣。
-
 我们可以用channel实现一个简单的任务队列。
 
 ![task_queue](https://s1.ax1x.com/2018/10/15/ialATe.png)
 
-Channel 很有趣，因为:
+channel 具有如下特性:
 * channel 是goroutine安全的。
 * channel 可以在goroutine 之间传递消息。
 * 遵循FIFO语法
 * channel 可以是阻塞或者非阻塞的。
 
-尽管我们知道所有的这些特定，你可以花一点时间来了解下它是怎么工作的。这篇文章主要包括：
-
-* 创建channel（hchan结构）
-* 发送和接受消息（goroutine 调度）
-* 回顾（关于设计的思考）
-
 ### 创建 channel
 
-在使用之前首先要创建一个channel，make可以创建带缓冲区或者不带缓冲区的channel。这篇文章主要讨论的是带有缓冲区的channel。
+在使用之前首先要创建一个channel，make可以创建带缓冲区或者不带缓冲区的channel。这里主要讨论的是带有缓冲区的channel。
 
-创建一个缓冲区容量为3的channel可以使用 ch := make(chan Task, 3)
+创建一个缓冲区容量为3的channel，ch := make(chan Task, 3)
 
 * 这个channel是goroutine安全的。
 * 存储到channel中的数据是遵循FIFO的。
@@ -69,11 +61,11 @@ Go语言调度器是一个M：N的调度器，将少部分系统线程映射到N
 
 当goroutine需要暂停的时候，调度器在接收到chan的通知后，将G1从running状态置为waiting状态，同时调度其它goroutine使用空出来的系统线程。
 
-这个做法非常棒，因为我们并没有停止系统线程的运行，只是通过上下文切换的方式更换了正在运行的goroutine，这个操作的代价很小。
+这个做法非常好，因为我们并没有停止系统线程的运行，只是通过上下文切换的方式更换了正在运行的goroutine，这个操作的代价很小。
 
 当channel又有存储空间的时候，我们需要将这个goroutine从暂停的状态上恢复回来。
 
-#### 回复 goroutine
+#### 恢复 goroutine
 
 ![resuming goroutine](https://s1.ax1x.com/2018/10/15/ia1SAg.png)
 
