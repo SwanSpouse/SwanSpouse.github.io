@@ -16,26 +16,34 @@ Raft算法的优点在于可以在高效的解决分布式系统中各个节点�
 
 #### raft 基本概念
 
-Raft 集群中的每个节点都可以根据集群运行的情况在三种状态间切换：follower, candidate 与 leader。leader 向 follower 同步日志，follower 只从 leader 处获取日志。在节点初始启动时，节点的 raft 状态机将处于 follower 状态并被设定一个 election timeout，如果在这一时间周期内没有收到来自 leader 的 heartbeat，节点将发起选举：节点在将自己的状态切换为 candidate 之后，向集群中其它 follower 节点发送请求，询问其是否选举自己成为 leader。当收到来自集群中过半数节点的接受投票后，节点即成为 leader，开始接收保存 client 的数据并向其它的 follower 节点同步日志。leader 节点依靠定时向 follower 发送 heartbeat 来保持其地位。任何时候如果其它 follower 在 election timeout 期间都没有收到来自 leader 的 heartbeat，同样会将自己的状态切换为 candidate 并发起选举。每成功选举一次，新 leader 的步进数都会比之前 leader 的步进数大 1。
-
 在Raft协议中，节点有如下三种角色:
-* Leader: 负责处理客户端请求、日志复制等。
-* Follower: 类似选民，完全被动。
+* Leader: 负责处理客户端请求、向Follower同步日志。
+* Follower: 类似选民，完全被动，从Leader处获取日志。
 * Candidate: Leader候选人。
 
 ![raft 状态转换](https://s2.ax1x.com/2019/01/09/FLlujg.png)
 
+状态转换：
+
+* 所有节点初始角色都是Follower。
+* 如果Follower在超时时间内没有收到Leader的请求则转换为Candidate进行选举。
+* Candidate收到大多数节点的选票则转换为Leader；发现Leader或者收到更高任期的请求则转换为Follower；如果出现多个Candidate票数相同的情况，则本次选举timeout，一段时间后开始下一个任期的选举。
+* Leader在收到更高任期的请求后转换为Follower。
+
 ![raft 时间片](https://s2.ax1x.com/2019/01/09/FLlMuQ.png)
 
-#### Leader election
+任期:
 
-正常情况下选举Leader
+Raft把时间切割为任意长度的任期，每个任期都有一个任期号，采用连续的整数来进行表示。每个任期都由一次选举开始，若选举失败则这个任期内没有Leader；如果选举出了Leader则这个任期内有Leader负责集群状态管理。
+
+### Leader 选举
 
 一个 candidate 成为 leader 需要具备三个要素：
-获得集群多数节点的同意；
-集群中不存在比自己步进数更高的 candidate；
-集群中不存在其他 leader。
+* 获得集群多数节点的同意；
+* 集群中不存在比自己任期号更高的 candidate；
+* 集群中不存在其他 leader。
 
+#### 正常选举Leader的过程
 
 Leader出故障的时候重新选举Leader
 
