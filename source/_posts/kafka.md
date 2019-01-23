@@ -42,6 +42,10 @@ Partition：物理上的概念，一个Topic可以为多个Partition，每个Par
 
 在发送一条消息时，可以指定这个消息的 key，producer 根据这个 key 和 partition 机制来判断这个消息发送到哪个 partition。partition 机制可以通过指定 producer 的 partition.class 这一参数来指定，该 class 必须实现 kafka.producer.Partitioner 接口。
 
+#### ZeroCopy
+
+当数据源是一个Channel,数据接收端也是一个Channel(SocketChannel),则通过ZeroCopy方式进行数据传输，是直接在内核态进行的，避免拷贝数据导致的内核态和用户态的多次切换。
+
 ### Kafka高可用性
 
 Kafka 的高可靠性的保障来源于其健壮的副本（replication）策略。通过调节其副本相关参数，可以使得 Kafka 在性能和可靠性之间运转的游刃有余。Kafka 从 0.8.x 版本开始提供 partition 级别的复制,replication 的数量可以在 $KAFKA_HOME/config/server.properties 中配置（default.replication.refactor）。
@@ -122,14 +126,12 @@ Kafka 的 ISR 的管理最终都会反馈到 Zookeeper 节点上。具体位置�
 当 producer 向 leader 发送数据时，可以通过 request.required.acks 参数来设置数据可靠性的级别：
 
 * 1（默认）：这意味着 producer 在 ISR 中的 leader 已成功收到的数据并得到确认后发送下一条 message。如果 leader 宕机了，则会丢失数据。
-
 * 0：这意味着 producer 无需等待来自 broker 的确认而继续发送下一批消息。这种情况下数据传输效率最高，但是数据可靠性确是最低的。
-
 * -1：producer 需要等待 ISR 中的所有 follower 都确认接收到数据后才算一次发送完成，可靠性最高。但是这样也不能保证数据不丢失，比如当 ISR 中只有 leader 时（前面 ISR 那一节讲到，ISR 中的成员由于某些情况会增加也会减少，最少就只剩一个 leader），这样就变成了 acks=1 的情况。
 
 如果要提高数据的可靠性，在设置 request.required.acks=-1 的同时，也要 min.insync.replicas 这个参数 (可以在 broker 或者 topic 层面进行设置) 的配合，这样才能发挥最大的功效。min.insync.replicas 这个参数设定 ISR 中的最小副本数是多少，默认值为 1，当且仅当 request.required.acks 参数设置为 -1 时，此参数才生效。如果 ISR 中的副本数少于 min.insync.replicas 配置的数量时，客户端会返回异常：org.apache.kafka.common.errors.NotEnoughReplicasExceptoin: Messages are rejected since there are fewer in-sync replicas than required。
 
-#### Leader选举
+#### Leader选举策略
 
 一条消息只有被 ISR 中的所有 follower 都从 leader 复制过去才会被认为已提交。这样就避免了部分数据被写进了 leader，还没来得及被任何 follower 复制就宕机了，而造成数据丢失。而对于 producer 而言，它可以选择是否等待消息 commit，这可以通过 request.required.acks 来设置。这种机制确保了只要 ISR 中有一个或者以上的 follower，一条被 commit 的消息就不会丢失。
 
@@ -146,10 +148,16 @@ Kafka 在 Zookeeper 中为每一个 partition 动态的维护了一个 ISR，这
 上文提到，在 ISR 中至少有一个 follower 时，Kafka 可以确保已经 commit 的数据不丢失，但如果某一个 partition 的所有 replica 都挂了，就无法保证数据不丢失了。这种情况下有两种可行的方案：
 
 * 等待 ISR 中任意一个 replica“活”过来，并且选它作为 leader
-
 * 选择第一个“活”过来的 replica（并不一定是在 ISR 中）作为 leader
 
 这就需要在可用性和一致性当中作出一个简单的抉择。如果一定要等待 ISR 中的 replica“活”过来，那不可用的时间就可能会相对较长。而且如果 ISR 中所有的 replica 都无法“活”过来了，或者数据丢失了，这个 partition 将永远不可用。选择第一个“活”过来的 replica 作为 leader, 而这个 replica 不是 ISR 中的 replica, 那即使它并不保障已经包含了所有已 commit 的消息，它也会成为 leader 而作为 consumer 的数据源。默认情况下，Kafka 采用第二种策略，即 unclean.leader.election.enable=true，也可以将此参数设置为 false 来启用第一种策略。
+
+
+#### Leader选举过程
+
+最简单最直观的方案是，leader在zk上创建一个临时节点，所有Follower对此节点注册监听，当leader宕机时，此时ISR里的所有Follower都尝试创建该节点，而创建成功者（Zookeeper保证只有一个能创建成功）即是新的Leader，其它Replica即为Follower。
+
+实际上的实现思路也是这样，只是优化了下，多了个代理控制管理类（controller）。引入的原因是，当kafka集群业务很多，partition达到成千上万时，当broker宕机时，造成集群内大量的调整，会造成大量Watch事件被触发，Zookeeper负载会过重。zk是不适合大量写操作的。
 
 
 ### reference
