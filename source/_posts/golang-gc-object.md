@@ -6,6 +6,7 @@ tags:
   - java
   - jvm
   - gc
+  - golang 内存管理模块
 ---
 
 ### 对象是否存活判断

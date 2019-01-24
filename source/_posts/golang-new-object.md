@@ -3,6 +3,7 @@ title: golang中的new和make
 date: 2018-08-21 22:34:50
 tags:
   - golang
+  - golang 内存管理模块
 ---
 
 #### 零值

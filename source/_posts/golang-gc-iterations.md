@@ -4,6 +4,7 @@ date: 2018-08-25 23:05:01
 tags:
   - golang
   - gc
+  - golang 内存管理模块
 ---
 go 语言在 1.3 以前，使用的是比较蠢的传统 Mark-Sweep 算法。
 

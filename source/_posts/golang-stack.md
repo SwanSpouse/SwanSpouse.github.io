@@ -4,6 +4,7 @@ date: 2018-08-23 00:12:25
 tags:
   - golang
   - gc
+  - golang 内存管理模块
 ---
 
 ### golang 栈内存介绍
