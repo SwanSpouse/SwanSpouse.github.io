@@ -19,7 +19,7 @@ tags:
 
 #### new
 
-new的结果是一个指针。在new(T)时会为对象T分配新的内存，将其至零，并返回它的地址（一个类型为*T的值）
+new的结果是一个指针。在new(T)时会为对象T分配新的内存，将其置零，并返回它的地址（一个类型为*T的值）
 
 如果用C语言来描述golang中new的过程，可以解释为
 
@@ -55,4 +55,5 @@ fmt.Printf("%+v\n", *p == nil)
 
 #### reference
 * 《Go 并发编程实战》
+* https://stackoverflow.com/questions/25358130/what-is-the-difference-between-new-and-make
 * http://hustcat.github.io/new-and-make/
