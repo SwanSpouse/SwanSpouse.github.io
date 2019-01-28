@@ -84,6 +84,7 @@ SETNX是将 key 的值设为 value，当且仅当 key 不存在。若给定的 k
 * 返回0，说明其他进程已经获得了锁，进程不能进入临界区。进程可以在一个循环中不断地尝试 SETNX 操作，以获得锁。
 
 [单点Redis实现分布式锁](https://swanspouse.github.io/2019/01/28/distributed-lock-based-on-redis/)
+[Redis Cluster实现分布式锁](https://swanspouse.github.io/2019/01/28/distributed-lock-based-on-redis-cluster)
 
 ##### 存在死锁的问题
 

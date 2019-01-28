@@ -1,8 +1,9 @@
 ---
 title: 基于单Redis节点的分布式锁
 tags:
-  - distributed lock
   - redis
+  - distributed system
+  - distributed lock
 date: 2019-01-28 15:28:48
 ---
 
