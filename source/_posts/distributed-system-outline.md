@@ -8,7 +8,9 @@ tags:
 
 这里主要对分布式系统的定义、应用甚至意义来做一些阐述。有一个统揽全局的概念。
 
-应用：分布式操作系统，分布式文件系统，分布式数据库系统，分布式共享存储器
+应用：分布式操作系统，分布式文件系统，分布式存储系统(分布式数据库、缓存、消息队列等)。
+
+这里主要是针对分布式存储系统来展开。
 
 ### 分布式系统的理论基础
 
@@ -22,7 +24,7 @@ tags:
 
 硬件异常：网络异常、磁盘故障、机房级异常
 
-拜占庭将军问题：拜占庭将军问题是分布式领域最复杂、最严格的容错模型。
+[拜占庭将军问题：拜占庭将军问题是分布式领域最复杂、最严格的容错模型。](https://swanspouse.github.io/2018/10/23/byzantine-generals-problem/)
 
 #### 分布式系统的重要理论
 
@@ -65,7 +67,10 @@ Gossip是一种去中心化，容错而又最终一致性的算法。
 分布式数据管理：复制数据的一致性。分布式并发控制。
 
 WAL Write ahead log 用来保证数据最终一致性。
-LSM log structured merge 用来提升系统的读写效率。将随机写转换为顺序写。
+
+[LSM log structured merge 用来提升系统的读写效率。将随机写转换为顺序写。](https://swanspouse.github.io/2019/01/28/LSM-Tree//)
+
+[分布式锁](https://swanspouse.github.io/2019/01/28/distributed-lock/)
 
 分布式事务，事务又牵扯到一致性问题了。其实事务就是一致性。
 
@@ -73,5 +78,10 @@ LSM log structured merge 用来提升系统的读写效率。将随机写转换�
 
 #### 分布式系统的运维问题
 
+### TODO 消息队列应该归为哪一类呢？
 
-#### reference
+[Kafka](https://swanspouse.github.io/2019/01/23/kafka/)
+
+[Redis](https://swanspouse.github.io/tags/redis/)
+
+[NSQ](https://swanspouse.github.io/tags/NSQ/)
