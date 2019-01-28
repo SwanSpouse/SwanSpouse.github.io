@@ -85,14 +85,14 @@ nsq
 │   ├── dqname_windows.go      # backend names 用于windows系统，<topic>;<channel>格式
 │   ├── dummy_backend_queue.go # 伪后台存储队列实现，所有需要落盘的数据全部丢弃。
 │   ├── guid.go                # 生成全局唯一的guid
-│   ├── guid_test.go           # 生成全局唯一的guid
+│   ├── guid_test.go           # 生成全局唯一的guid的测试
 │   ├── http.go                # 定义所有nsqd进程处理的http接口，以及相应的处理函数
 │   ├── http_test.go           # http.go 相应的测试
 │   ├── in_flight_pqueue.go    # 正在处理中的消息优先级队列。
 │   ├── in_flight_pqueue_test.go # in_flight_pqueue.go 相应的测试
 │   ├── logger.go              # log工具
-│   ├── lookup.go              # 和 nsqlookupd 进行交互
-│   ├── lookup_peer.go         # 和 nsqlookupd 进行交互的低层函数。读取、解析、发送命令等。
+│   ├── lookup.go              # 用于和 nsqlookupd 进行交互
+│   ├── lookup_peer.go         # 用于和 nsqlookupd 进行交互的低层函数。读取、解析、发送命令等。
 │   ├── message.go             # nsqd 传递消息的定义以及相关方法。
 │   ├── nsqd.go                # nsqd 定义以及相关方法。
 │   ├── nsqd_test.go           # nsqd.go 相关测试
