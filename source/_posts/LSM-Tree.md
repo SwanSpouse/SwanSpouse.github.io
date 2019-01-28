@@ -16,7 +16,7 @@ LSM Tree是为了优化数据库写性能而出现的，相较于传统的B+树�
 LSM Tree的节点可以分为两种：
 
 * MemTable: 保存在内存中的小树，称之为MemTable，一般可以是红黑树、跳跃表，甚至可以是B树。
-* SSTable: 保存在磁盘上的大树，称之为SSTable，通常是B树或起变种。
+* SSTable: 保存在磁盘上的大树，称之为SSTable，通常是B树或其变种。
 
 ### LSM Tree和 B+树对比
 
