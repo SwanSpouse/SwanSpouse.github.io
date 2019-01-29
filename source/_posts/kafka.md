@@ -26,7 +26,7 @@ Kafka 与传统消息系统相比，有以下不同：
 #### 主要角色
 
 Broker：一个Kafka节点就是一个Broker，一个或者多个Broker组成Kafka集群。
-Topic：Kafka根据Topic对消息进行归类，发布到Kafka集群的每条消息都需要指定一个Topic
+Topic：Kafka根据Topic对消息进行归类，发布到Kafka集群的每条消息都需要指定一个Topic。
 Producer：消息生产者，向Broker发送消息的客户端。
 Consumer：消息消费者，从Broker读取消息的客户端。
 ConsumerGroup： 每个Consumer都属于一个特定的ConsumerGroup，一条消息可以发送到多个不同的ConsumerGroup，但是一个ConsumerGroup中只能有一个Consumer能够消费该消息。
@@ -34,7 +34,7 @@ Partition：物理上的概念，一个Topic可以为多个Partition，每个Par
 
 #### Topic和Partition
 
-一个 topic 可以认为一个一类消息，每个 topic 将被分成多个 partition，每个 partition 在存储层面是 append log 文件。任何发布到此 partition 的消息都会被追加到 log 文件的尾部，每条消息在文件中的位置称为 offset(偏移量)，offset 为一个 long 型的数字，它唯一标记一条消息。每条消息都被 append 到 partition 中，是顺序写磁盘，因此效率非常高（经验证，顺序写磁盘效率比随机写内存还要高，这是 Kafka 高吞吐率的一个很重要的保证）。
+一个 topic 可以认为是一类消息，每个 topic 分成多个 partition，每个 partition 在存储层面是 append log 文件。任何发布到此 partition 的消息都会被追加到 log 文件的尾部，每条消息在文件中的位置称为 offset(偏移量)，offset 为一个 long 型的数字，它唯一标记一条消息。每条消息都被 append 到 partition 中，是顺序写磁盘，因此效率非常高（经验证，顺序写磁盘效率比随机写内存还要高，这是 Kafka 高吞吐率的一个很重要的保证）。
 
 ![kafka写message](https://s2.ax1x.com/2019/01/23/kEthjI.png)
 
@@ -44,7 +44,7 @@ Partition：物理上的概念，一个Topic可以为多个Partition，每个Par
 
 #### ZeroCopy
 
-当数据源是一个Channel,数据接收端也是一个Channel(SocketChannel),则通过ZeroCopy方式进行数据传输，是直接在内核态进行的，避免拷贝数据导致的内核态和用户态的多次切换。
+当数据源是一个Channel，数据接收端也是一个Channel(SocketChannel)时，可以通过ZeroCopy方式进行数据传输，由于ZeroCopy的方式是直接在内核态进行的，避免拷贝数据导致的内核态和用户态的多次切换。因此可以提升Kafka的吞吐率。
 
 ### Kafka高可用性
 
@@ -112,7 +112,7 @@ Kafka 0.10.x 版本后移除了 replica.lag.max.messages 参数，只保留了 r
 
 但是 producer 发起瞬时高峰流量，producer 一次发送的消息超过 4 条时，也就是超过 replica.lag.max.messages，此时 follower 都会被认为是与 leader 副本不同步了，从而被踢出了 ISR。但实际上这些 follower 都是存活状态的且没有性能问题。那么在之后追上 leader, 并被重新加入了 ISR。于是就会出现它们不断地剔出 ISR 然后重新回归 ISR，这无疑增加了无谓的性能损耗。而且这个参数是 broker 全局的。设置太大了，影响真正“落后”follower 的移除；设置的太小了，导致 follower 的频繁进出。无法给定一个合适的 replica.lag.max.messages 的值，故此，新版本的 Kafka 移除了这个参数。
 
-上面还涉及到一个概念，即 HW。HW 俗称高水位，HighWatermark 的缩写，取一个 partition 对应的 ISR 中最小的 LEO 作为 HW，consumer 最多只能消费到 HW 所在的位置。另外每个 replica 都有 HW,leader 和 follower 各自负责更新自己的 HW 的状态。对于 leader 新写入的消息，consumer 不能立刻消费，leader 会等待该消息被所有 ISR 中的 replicas 同步后更新 HW，此时消息才能被 consumer 消费。这样就保证了如果 leader 所在的 broker 失效，该消息仍然可以从新选举的 leader 中获取。对于来自内部 broKer 的读取请求，没有 HW 的限制。
+上面还涉及到一个概念，即 HW。HW 俗称高水位，HighWatermark 的缩写，取一个 partition 对应的 ISR 中最小的 LEO 作为 HW，consumer 最多只能消费到 HW 所在的位置。另外每个 replica 都有 HW，leader 和 follower 各自负责更新自己的 HW 的状态。对于 leader 新写入的消息，consumer 不能立刻消费，leader 会等待该消息被所有 ISR 中的 replicas 同步后更新 HW，此时消息才能被 consumer 消费。这样就保证了如果 leader 所在的 broker 失效，该消息仍然可以从新选举的 leader 中获取。对于来自内部 broker 的读取请求，没有 HW 的限制。
 
 Kafka 的 ISR 的管理最终都会反馈到 Zookeeper 节点上。具体位置为：/brokers/topics/[topic]/partitions/[partition]/state。目前有两个地方会对这个 Zookeeper 的节点进行维护：
 
@@ -124,7 +124,6 @@ Kafka 的 ISR 的管理最终都会反馈到 Zookeeper 节点上。具体位置�
 #### 数据可靠性和持久性保证
 
 当 producer 向 leader 发送数据时，可以通过 request.required.acks 参数来设置数据可靠性的级别：
-
 * 1（默认）：这意味着 producer 在 ISR 中的 leader 已成功收到的数据并得到确认后发送下一条 message。如果 leader 宕机了，则会丢失数据。
 * 0：这意味着 producer 无需等待来自 broker 的确认而继续发送下一批消息。这种情况下数据传输效率最高，但是数据可靠性确是最低的。
 * -1：producer 需要等待 ISR 中的所有 follower 都确认接收到数据后才算一次发送完成，可靠性最高。但是这样也不能保证数据不丢失，比如当 ISR 中只有 leader 时（前面 ISR 那一节讲到，ISR 中的成员由于某些情况会增加也会减少，最少就只剩一个 leader），这样就变成了 acks=1 的情况。
@@ -135,9 +134,9 @@ Kafka 的 ISR 的管理最终都会反馈到 Zookeeper 节点上。具体位置�
 
 一条消息只有被 ISR 中的所有 follower 都从 leader 复制过去才会被认为已提交。这样就避免了部分数据被写进了 leader，还没来得及被任何 follower 复制就宕机了，而造成数据丢失。而对于 producer 而言，它可以选择是否等待消息 commit，这可以通过 request.required.acks 来设置。这种机制确保了只要 ISR 中有一个或者以上的 follower，一条被 commit 的消息就不会丢失。
 
-有一个很重要的问题是当 leader 宕机了，怎样在 follower 中选举出新的 leader，因为 follower 可能落后很多或者直接 crash 了，所以必须确保选择“最新”的 follower 作为新的 leader。一个基本的原则就是，如果 leader 不在了，新的 leader 必须拥有原来的 leader commit 的所有消息。这就需要做一个折中，如果 leader 在表名一个消息被 commit 前等待更多的 follower 确认，那么在它挂掉之后就有更多的 follower 可以成为新的 leader，但这也会造成吞吐率的下降。
+有一个很重要的问题是当 leader 宕机了，怎样在 follower 中选举出新的 leader，因为 follower 可能落后很多或者直接 crash 了，所以必须确保选择“最新”的 follower 作为新的 leader。一个基本的原则就是，如果 leader 不在了，新的 leader 必须拥有原来的 leader commit 的所有消息。这就需要做一个折中，如果 leader 需要等待多个follower确认后才对消息进行commit，那么在它挂掉之后就有更多的 follower 可以成为新的 leader，但这也会造成吞吐率的下降。
 
-一种非常常用的选举 leader 的方式是“少数服从多数”，Kafka 并不是采用这种方式。这种模式下，如果我们有 2f+1 个副本，那么在 commit 之前必须保证有 f+1 个 replica 复制完消息，同时为了保证能正确选举出新的 leader，失败的副本数不能超过 f 个。这种方式有个很大的优势，系统的延迟取决于最快的几台机器，也就是说比如副本数为 3，那么延迟就取决于最快的那个 follower 而不是最慢的那个。
+一种非常常用的选举 leader 的方式是“少数服从多数”，Kafka 并不是采用这种方式。这种模式下，如果我们有 2f+1 个副本，那么在 commit 之前必须保证有 f+1 个 replica 复制完消息。同时为了保证能正确选举出新的 leader，失败的副本数不能超过 f 个。这种方式有个很大的优势，系统的延迟取决于最快的几台机器，也就是说比如副本数为 3，那么延迟就取决于最快的那个 follower 而不是最慢的那个。
 
 “少数服从多数”的方式也有一些劣势，为了保证 leader 选举的正常进行，它所能容忍的失败的 follower 数比较少，如果要容忍 1 个 follower 挂掉，那么至少要 3 个以上的副本，如果要容忍 2 个 follower 挂掉，必须要有 5 个以上的副本。也就是说，在生产环境下为了保证较高的容错率，必须要有大量的副本，而大量的副本又会在大数据量下导致性能的急剧下降。这种算法更多用在 Zookeeper 这种共享集群配置的系统中而很少在需要大量数据的系统中使用的原因。HDFS 的 HA 功能也是基于“少数服从多数”的方式，但是其数据存储并不是采用这样的方式。
 
@@ -155,7 +154,7 @@ Kafka 在 Zookeeper 中为每一个 partition 动态的维护了一个 ISR，这
 
 #### Leader选举过程
 
-最简单最直观的方案是，leader在zk上创建一个临时节点，所有Follower对此节点注册监听，当leader宕机时，此时ISR里的所有Follower都尝试创建该节点，而创建成功者（Zookeeper保证只有一个能创建成功）即是新的Leader，其它Replica即为Follower。
+最简单最直观的方案是，leader在zk上创建一个临时节点，所有follower对此节点注册监听。当leader宕机时，此时ISR里的所有follower都尝试创建该节点，而创建成功者（Zookeeper保证只有一个能创建成功）即是新的leader，其它Replica即为follower。
 
 实际上的实现思路也是这样，只是优化了下，多了个代理控制管理类（controller）。引入的原因是，当kafka集群业务很多，partition达到成千上万时，当broker宕机时，造成集群内大量的调整，会造成大量Watch事件被触发，Zookeeper负载会过重。zk是不适合大量写操作的。
 
