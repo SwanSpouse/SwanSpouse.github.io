@@ -8,9 +8,7 @@ tags:
 
 查询中用到的关键词主要包含六个，并且他们的顺序依次为:
 
-```sql
-select --> from --> where --> group by --> having --> order by
-```
+* select --> from --> where --> group by --> having --> order by
 
 SQL Select语句完整的执行顺序【从DBMS使用者角度】:
 

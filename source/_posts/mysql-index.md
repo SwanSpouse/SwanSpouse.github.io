@@ -15,9 +15,7 @@ mysql的索引分为单列索引(主键索引,唯一索引,普通索引)和组�
 
 #### 联合索引:
 
-```sql
 select * from users where area=’Beijing’ and age=22;
-```
 
 * 如果我们是在area和age上分别创建单个索引的话，由于mysql查询每次只能使用一个索引，所以虽然这样已经相对不做索引时全表扫描提高了很多效率。
 
