@@ -31,3 +31,56 @@ select * from users where area=’Beijing’ and age=22;
 * 一般情况下不鼓励使用like操作，如果非使用不可，如何使用也是一个问题。like “%aaa%” 不会使用索引而like “aaa%”可以使用索引。
 
 * 在列上进行运算将导致查询不使用索引。
+
+#### MySQL在字符串类型字段上搜索整型值时无法使用索引
+
+
+
+假设表结构如下
+
+```SQL
+CREATE TABLE `user` (
+  `user_id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_name` varchar(64) NOT NULL DEFAULT '',
+  PRIMARY KEY (`user_id`),
+  KEY `user_name` (`user_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8
+```
+
+当执行下面这样的sql时无法使用索引
+
+```
+select * from user where user_name = 100;
+```
+
+因为上面的sql语句等价于
+
+```
+select * from user where convert(user_name, signed) = 100;
+```
+
+即搜索把user_name字段转化为整型后的值等于100的行。而这样的user_name是可以有很多的，例如”100”，”0100”和”00100”。所以不能使用索引进行查找！
+
+
+The essential point is that the index cannot be used if the database has to do a conversion on the table-side of the comparison.
+
+Besides that, the DB always coverts Strings -> Numbers because this is the deterministic way (otherwise 1 could be converted to '01', '001' as mentioned in the comments).
+
+So, if we compare the two cases that seem to confuse you:
+
+```sql
+-- index is used
+EXPLAIN SELECT * FROM a_table WHERE int_column = '1';
+```
+The DB converts the string '1' to the number 1 and then executes the query. It finally has int on both sides so it can use the index.
+
+```sql
+-- index is NOT used. WTF?
+EXPLAIN SELECT * FROM a_table WHERE str_column = 1;
+```
+Again, it converts the string to numbers. However, this time it has to convert the data stored in the table. In fact, you are performing a search like cast(str_column as int) = 1. That means, you are not searching on the indexed data anymore, the DB cannot use the index.
+
+
+#### reference
+
+* https://stackoverflow.com/questions/16786063/mysql-comparison-of-integer-value-and-string-field-with-index
