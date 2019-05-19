@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.2" rel="stylesheet" type="text/css">
+
+
+  <meta name="keywords" content="NSQ,">
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.2">
+
+
+
+
+
+
+<meta name="description" content="NSQD 消息处理整体流程 memoryMsgChan 和 backendMsgChanmemoryMsgChan：为内存缓冲区，Topic和Channel内存缓冲区的大小可以通过同一变量mem-queue-size来进行配置。 backendMsgChan：为磁盘优先级队列。通过diskqueue来实现。发送到backendMsgChan中的消息会通过diskqueue写入到磁盘中。 生产者作为">
+<meta name="keywords" content="NSQ">
+<meta property="og:type" content="article">
+<meta property="og:title" content="NSQD 消息处理流程">
+<meta property="og:url" content="http://yoursite.com/2019/05/19/nsq-handle-message/index.html">
+<meta property="og:site_name" content="鸡蛋蛋🥚">
+<meta property="og:description" content="NSQD 消息处理整体流程 memoryMsgChan 和 backendMsgChanmemoryMsgChan：为内存缓冲区，Topic和Channel内存缓冲区的大小可以通过同一变量mem-queue-size来进行配置。 backendMsgChan：为磁盘优先级队列。通过diskqueue来实现。发送到backendMsgChan中的消息会通过diskqueue写入到磁盘中。 生产者作为">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:image" content="https://s1.ax1x.com/2018/11/27/FVkOMD.png">
+<meta property="og:updated_time" content="2019-05-19T02:32:11.954Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="NSQD 消息处理流程">
+<meta name="twitter:description" content="NSQD 消息处理整体流程 memoryMsgChan 和 backendMsgChanmemoryMsgChan：为内存缓冲区，Topic和Channel内存缓冲区的大小可以通过同一变量mem-queue-size来进行配置。 backendMsgChan：为磁盘优先级队列。通过diskqueue来实现。发送到backendMsgChan中的消息会通过diskqueue写入到磁盘中。 生产者作为">
+<meta name="twitter:image" content="https://s1.ax1x.com/2018/11/27/FVkOMD.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"left","display":"hide","offset":12,"offset_float":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2019/05/19/nsq-handle-message/">
+
+
+
+
+
+  <title>NSQD 消息处理流程 | 鸡蛋蛋🥚</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">鸡蛋蛋🥚</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br>
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-booklist">
+          <a href="/booklist/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-book"></i> <br>
+            
+            书单
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br>
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/05/19/nsq-handle-message/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="LiMingji">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="鸡蛋蛋🥚">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">NSQD 消息处理流程</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-05-19T10:32:11+08:00">
+                2019-05-19
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/05/19/nsq-handle-message/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2019/05/19/nsq-handle-message/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h3 id="NSQD-消息处理整体流程"><a href="#NSQD-消息处理整体流程" class="headerlink" title="NSQD 消息处理整体流程"></a>NSQD 消息处理整体流程</h3><p><img src="https://s1.ax1x.com/2018/11/27/FVkOMD.png" alt="NSQD handle message"></p>
+<h4 id="memoryMsgChan-和-backendMsgChan"><a href="#memoryMsgChan-和-backendMsgChan" class="headerlink" title="memoryMsgChan 和 backendMsgChan"></a>memoryMsgChan 和 backendMsgChan</h4><p>memoryMsgChan：为内存缓冲区，Topic和Channel内存缓冲区的大小可以通过同一变量mem-queue-size来进行配置。</p>
+<p>backendMsgChan：为磁盘优先级队列。通过<a href="https://swanspouse.github.io/2018/11/27/nsq-disk-queue/" target="_blank" rel="noopener">diskqueue</a>来实现。发送到backendMsgChan中的消息会通过diskqueue写入到磁盘中。</p>
+<h4 id="生产者"><a href="#生产者" class="headerlink" title="生产者"></a>生产者</h4><p>作为消息队列的生产者，可以通过HTTP、TCP两种方式向NSQD生产消息。但两种方式相同的是，需要指定生产消息的Topic。</p>
+<p>NSQD在接收生产者发送过来的消息的时候，会优先将消息写入Topic的内存缓冲区(memoryMsgChan)中。</p>
+<p>如果生产者生产消息的速度过快，或者消费者消费不及时导致memoryMsgChan中的消息积压。当memoryMsgChan已经满了的时候，生产者会直接通过backendMsgChan将数据直接写入磁盘。</p>
+<p>NSQD在接收生产者发送来消息的时候，一部分存储在memoryMsgChan、一部分存储在backendMsgChan，其中memoryMsgChan、backendMsgChan中的消息之间保持着原有的先后顺序，但是memoryMsgChan和backendMsgChan之间消息就丢掉了相互之间的先后顺序。所以，NSQD本身是不保证消息的有序性的。但是消费者可以通过消息的ID和时间戳来判别消息之间的先后顺序。</p>
+<h4 id="消费者"><a href="#消费者" class="headerlink" title="消费者"></a>消费者</h4><p>作为消息队列的消费者。通过和NSQD建立TCP连接，就可以订阅指定Topic的消息进行消费。在订阅消息的时候，需要指定Topic和Channel两个参数。</p>
+<p>NSQD在接受到来自消费者的SUB（订阅）请求后，会找到指定Topic下的Channel，若Channel不存在，则会创建一个新的Channel。并通过Channel中的 memoryMsgChan和backendMsgChan向消费者发送消息。</p>
+<p>消费者优先消费memoryMsgChan中的消息。</p>
+<p>如果消费者消费消息的速度过快，或者生产者生产不及时导致memoryMsgChan中没有数据。消费者会通过backendMsgChan直接消费存储在磁盘上的数据。</p>
+<h4 id="NSQD"><a href="#NSQD" class="headerlink" title="NSQD"></a>NSQD</h4><p>在上述流程中，NSQD负责消息接收、消息发送，以及维护Topic和Channel之间映射关系的功能。其中重要的一环是消息如何从Topic流向Channel。</p>
+<p>生产者在生产消息的时候，是以Topic为目标来进行生产的；消费者在消费消息的时候，是以Topic和Channel为目标来进行消费的。所以NSQD中，Topic在接收到生产者消息后，会不断的将消息分发给其下面的各个Channel。</p>
+<p>同样也是内存优先的策略。</p>
+<ul>
+<li>如果是 Topic 的memoryMsgChan中有消息，Channel的memoryMsgChan中有空位，则直接Topic memoryMsgChan -&gt; Channel memoryMsgChan。</li>
+<li>其次是 Topic memoryMsgChan -&gt; Channel backendMsgChan 或者 Topic backendMsgChan -&gt; Channel memoryMsgChan</li>
+<li>最后是 Topic backendMsgChan -&gt; Channel backendMsgChan</li>
+</ul>
+<p>即使没有消费者或者生产者的存在，只要Topic和Channel存在，上述过程也是在不断的进行当中的。直到Topic中的消息完全分发给下面所有的Channel。</p>
+<h4 id="历史消息问题"><a href="#历史消息问题" class="headerlink" title="历史消息问题"></a>历史消息问题</h4><p>在NSQ中，新的消费者是无法重新消费到已经被消费的消息，即使创建了一个新的channel。</p>
+<p>因为消费者消费的消息来自Topic的memoryMsgChan和backendMsgChan。而Topic不会记录其下各Channel消费消息的位置。</p>
+<p>所以当consumer启动之后，只能消费到新增消息，不能消费到历史消息。</p>
+<h3 id="NSQD-消息处理相关源码分析"><a href="#NSQD-消息处理相关源码分析" class="headerlink" title="NSQD 消息处理相关源码分析"></a>NSQD 消息处理相关源码分析</h3><p>这一部分主要说明NSQ消息传递相关的业务逻辑：生产者 -&gt; NSQD -&gt; 消费者。NSQD启动后会初始化HttpServer和TcpServer，来接收客户端请求。这里以TcpServer为例。</p>
+<h4 id="NSQD接收客户端连接"><a href="#NSQD接收客户端连接" class="headerlink" title="NSQD接收客户端连接"></a>NSQD接收客户端连接</h4><p>每当有一个客户端通过TCP的方式连接NSQD，都会通过IOLoop对客户端发送的命令不断进行处理。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// protocol v2 处理客户端请求</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *protocolV2)</span> <span class="title">IOLoop</span><span class="params">(conn net.Conn)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">    <span class="comment">// 在这里首先要对client进行一些初始化的工作，为防止这些操作没有做完，所以在这里有个messagePumpStartedChan</span></span><br><span class="line">    messagePumpStartedChan := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">bool</span>)</span><br><span class="line">    <span class="comment">// 如果client是生产者，那么会在下面的for循环中不断向 memoryMsgChan 或者 backendMsgChan 写入message。</span></span><br><span class="line">    <span class="comment">// 如果Client是消费者，那么会在messagePump中不断的从memoryMsgChan 或者 backendMsgChan 中读取message。</span></span><br><span class="line">    <span class="keyword">go</span> p.messagePump(client, messagePumpStartedChan)</span><br><span class="line">    <span class="comment">// 阻塞在这里，直到messagePump这个方法里面的准备工作都已经做好。</span></span><br><span class="line">    &lt;-messagePumpStartedChan</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 循环接收客户端发送过来的请求</span></span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">    	<span class="comment">// 设置客户端超时时间</span></span><br><span class="line">    	<span class="keyword">if</span> client.HeartbeatInterval &gt; <span class="number">0</span> &#123;</span><br><span class="line">    		client.SetReadDeadline(time.Now().Add(client.HeartbeatInterval * <span class="number">2</span>))</span><br><span class="line">    	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    		client.SetReadDeadline(zeroTime)</span><br><span class="line">    	&#125;</span><br><span class="line">    	<span class="comment">// 读取客户端发送的请求</span></span><br><span class="line">    	<span class="comment">// ReadSlice does not allocate new space for the data each request</span></span><br><span class="line">    	<span class="comment">// ie. the returned slice is only valid until the next call to it</span></span><br><span class="line">    	line, err = client.Reader.ReadSlice(<span class="string">'\n'</span>)</span><br><span class="line">    	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    		<span class="keyword">if</span> err == io.EOF &#123;</span><br><span class="line">    			err = <span class="literal">nil</span></span><br><span class="line">    		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    			err = fmt.Errorf(<span class="string">"failed to read command - %s"</span>, err)</span><br><span class="line">    		&#125;</span><br><span class="line">    		<span class="comment">// 如果读到EOF，说明客户端已经关闭，则退出循环</span></span><br><span class="line">    		<span class="keyword">break</span></span><br><span class="line">    	&#125;</span><br><span class="line">    	<span class="comment">// 忽略末尾的\n trim the '\n'</span></span><br><span class="line">    	line = line[:<span class="built_in">len</span>(line)<span class="number">-1</span>]</span><br><span class="line">    	<span class="comment">// 忽略末尾的\r 如果存在的话 optionally trim the '\r'</span></span><br><span class="line">    	<span class="keyword">if</span> <span class="built_in">len</span>(line) &gt; <span class="number">0</span> &amp;&amp; line[<span class="built_in">len</span>(line)<span class="number">-1</span>] == <span class="string">'\r'</span> &#123;</span><br><span class="line">    		line = line[:<span class="built_in">len</span>(line)<span class="number">-1</span>]</span><br><span class="line">    	&#125;</span><br><span class="line">    	<span class="comment">// 对参数进行解析</span></span><br><span class="line">    	params := bytes.Split(line, separatorBytes)</span><br><span class="line">    	p.ctx.nsqd.logf(LOG_DEBUG, <span class="string">"PROTOCOL(V2): [%s] %s"</span>, client, params)</span><br><span class="line"></span><br><span class="line">    	<span class="keyword">var</span> response []<span class="keyword">byte</span></span><br><span class="line">    	<span class="comment">// 执行客户端发送过来的命令</span></span><br><span class="line">    	response, err = p.Exec(client, params)</span><br><span class="line">    	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    		ctx := <span class="string">""</span></span><br><span class="line">    		<span class="keyword">if</span> parentErr := err.(protocol.ChildErr).Parent(); parentErr != <span class="literal">nil</span> &#123;</span><br><span class="line">    			ctx = <span class="string">" - "</span> + parentErr.Error()</span><br><span class="line">    		&#125;</span><br><span class="line">    		p.ctx.nsqd.logf(LOG_ERROR, <span class="string">"[%s] - %s%s"</span>, client, err, ctx)</span><br><span class="line"></span><br><span class="line">    		<span class="comment">// 若执行的过程中报错，向客户端返回错误</span></span><br><span class="line">    		sendErr := p.Send(client, frameTypeError, []<span class="keyword">byte</span>(err.Error()))</span><br><span class="line">    		<span class="keyword">if</span> sendErr != <span class="literal">nil</span> &#123;</span><br><span class="line">    			p.ctx.nsqd.logf(LOG_ERROR, <span class="string">"[%s] - %s%s"</span>, client, sendErr, ctx)</span><br><span class="line">    			<span class="keyword">break</span></span><br><span class="line">    		&#125;</span><br><span class="line">    		<span class="comment">// errors of type FatalClientErr should forceably close the connection</span></span><br><span class="line">    		<span class="keyword">if</span> _, ok := err.(*protocol.FatalClientErr); ok &#123;</span><br><span class="line">    			<span class="keyword">break</span></span><br><span class="line">    		&#125;</span><br><span class="line">    		<span class="keyword">continue</span></span><br><span class="line">    	&#125;</span><br><span class="line">    	<span class="comment">// 如果命令执行正常，则进行回复。</span></span><br><span class="line">    	<span class="keyword">if</span> response != <span class="literal">nil</span> &#123;</span><br><span class="line">    		err = p.Send(client, frameTypeResponse, response)</span><br><span class="line">    		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    			err = fmt.Errorf(<span class="string">"failed to send response - %s"</span>, err)</span><br><span class="line">    			<span class="keyword">break</span></span><br><span class="line">    		&#125;</span><br><span class="line">    	&#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 读到EOF或者出现错误则退出</span></span><br><span class="line">    p.ctx.nsqd.logf(LOG_INFO, <span class="string">"PROTOCOL(V2): [%s] exiting ioloop"</span>, client)</span><br><span class="line">    conn.Close()</span><br><span class="line">    <span class="built_in">close</span>(client.ExitChan)</span><br><span class="line">    <span class="keyword">if</span> client.Channel != <span class="literal">nil</span> &#123;</span><br><span class="line">    	<span class="comment">// 客户端断开后，将client 从 channel中移除</span></span><br><span class="line">    	client.Channel.RemoveClient(client.ID)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 将Client从NSQD中移除</span></span><br><span class="line">    p.ctx.nsqd.RemoveClient(client.ID)</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="客户端向NSQD发送写命令"><a href="#客户端向NSQD发送写命令" class="headerlink" title="客户端向NSQD发送写命令"></a>客户端向NSQD发送写命令</h4><p>在上述代码中，NSQD会对客户端发送的命令进行解析并执行。下面来说明，当客户端向NSQD发送PUB/MPUB命令时的一些操作。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *protocolV2)</span> <span class="title">PUB</span><span class="params">(client *clientV2, params [][]<span class="keyword">byte</span>)</span> <span class="params">([]<span class="keyword">byte</span>, error)</span></span> &#123;</span><br><span class="line">    ......</span><br><span class="line">    <span class="comment">// 在这里首先会对参数的格式和非法性进行校验。保证参数无误。</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 获取消息发送的Topic，如果当前Topic不存在，则会创建一个新的Topic</span></span><br><span class="line">	topic := p.ctx.nsqd.GetTopic(topicName)</span><br><span class="line">    <span class="comment">// 创建一个Message实例</span></span><br><span class="line">	msg := NewMessage(topic.GenerateID(), messageBody)</span><br><span class="line">	<span class="comment">// 将Message写入Topic的memoryMsgChan或者backendMsgChan中，这个方法会在下面展开来说</span></span><br><span class="line">	err = topic.PutMessage(msg)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, protocol.NewFatalClientErr(err, <span class="string">"E_PUB_FAILED"</span>, <span class="string">"PUB failed "</span>+err.Error())</span><br><span class="line">	&#125;</span><br><span class="line">    <span class="comment">// 会进行一些统计</span></span><br><span class="line">    ....</span><br><span class="line">    <span class="comment">// 消息写入成功，将OK返回给客户端</span></span><br><span class="line">	<span class="keyword">return</span> okBytes, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上述代码中很关键的一个环节就是 topic.PutMessage(msg)，下面来说明它的具体实现。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 通过下面的方法，会将message写入Topic的memoryMsgChan或者backendMsgChan中，</span></span><br><span class="line"><span class="comment">可以看到，这个操作始终是内存优先的策略。如果Topic的memoryMsgChan中没有满，那么会直接写入到memoryMsgChan中；</span></span><br><span class="line"><span class="comment">若Topic的memoryMsgChan中的消息已经满了，才会写入backendMsgChan中。</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(t *Topic)</span> <span class="title">put</span><span class="params">(m *Message)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">select</span> &#123;</span><br><span class="line">	<span class="keyword">case</span> t.memoryMsgChan &lt;- m:</span><br><span class="line">        <span class="comment">// 在这里把message写入到memoryMsgChan当中，也就是写入内存中。</span></span><br><span class="line">	<span class="keyword">default</span>:</span><br><span class="line">		<span class="comment">// 在这里把消息写到backendMsgChan(diskqueue)中，也就是写入文件中。</span></span><br><span class="line">		b := bufferPoolGet()</span><br><span class="line">		err := writeMessageToBackend(b, m, t.backend)</span><br><span class="line">		bufferPoolPut(b)</span><br><span class="line">		t.ctx.nsqd.SetHealth(err)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			t.ctx.nsqd.logf(LOG_ERROR, <span class="string">"TOPIC(%s) ERROR: failed to write message to backend - %s"</span>, t.name, err)</span><br><span class="line">			<span class="keyword">return</span> err</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="客户端向NSQD发送读命令"><a href="#客户端向NSQD发送读命令" class="headerlink" title="客户端向NSQD发送读命令"></a>客户端向NSQD发送读命令</h4><p>同理，在NSQD收到客户端发来的SUB请求时，</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="comment">// 订阅Topic</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *protocolV2)</span> <span class="title">SUB</span><span class="params">(client *clientV2, params [][]<span class="keyword">byte</span>)</span> <span class="params">([]<span class="keyword">byte</span>, error)</span></span> &#123;</span><br><span class="line">    ....</span><br><span class="line">    <span class="comment">// 在这里首先会对参数的格式和非法性进行校验。保证参数无误。</span></span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">    	<span class="comment">// 获取topic和channel，若不存在，则创建相应的Topic和Channel</span></span><br><span class="line">    	topic := p.ctx.nsqd.GetTopic(topicName)</span><br><span class="line">    	channel = topic.GetChannel(channelName)</span><br><span class="line">    	<span class="keyword">break</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    ....</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 把channel塞到SubEventChan中，把channel写入到client.SubEventChan中。</span></span><br><span class="line">    client.SubEventChan &lt;- channel</span><br><span class="line">    <span class="comment">// 订阅成功，返回OK</span></span><br><span class="line">    <span class="keyword">return</span> okBytes, <span class="literal">nil</span></span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p>上述代码的主要工作，就是在接收到SUB命令时，创建或者获取相应的Topic和Channel，并最终把channel写入到client.SubEventChan中。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="comment">// 将消息不断的发送给Client</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *protocolV2)</span> <span class="title">messagePump</span><span class="params">(client *clientV2, startedChan <span class="keyword">chan</span> <span class="keyword">bool</span>)</span></span> &#123;</span><br><span class="line">    ....</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">    	<span class="comment">// 最初的时候subChannel == nil，在这里将所有变量都进行重置</span></span><br><span class="line">    	<span class="keyword">if</span> subChannel == <span class="literal">nil</span> || !client.IsReadyForMessages() &#123;</span><br><span class="line">    		<span class="comment">// the client is not ready to receive messages...</span></span><br><span class="line">    		memoryMsgChan = <span class="literal">nil</span></span><br><span class="line">    		backendMsgChan = <span class="literal">nil</span></span><br><span class="line">    		flusherChan = <span class="literal">nil</span></span><br><span class="line">    		flushed = <span class="literal">true</span></span><br><span class="line">    	&#125; <span class="keyword">else</span> <span class="keyword">if</span> flushed &#123;</span><br><span class="line">    		<span class="comment">// last iteration we flushed.. do not select on the flusher ticker channel</span></span><br><span class="line">    		<span class="comment">// 如果subChannel不为空，并且已经flushed过了，利用channel对memoryMsgChan和backendMsgChan</span></span><br><span class="line">    		<span class="comment">// 进行初始化，这时客户端就可以从memoryMsgChan和backendMsgChan中消费消息了。</span></span><br><span class="line">    		memoryMsgChan = subChannel.memoryMsgChan</span><br><span class="line">    		backendMsgChan = subChannel.backend.ReadChan()</span><br><span class="line">    		flusherChan = <span class="literal">nil</span></span><br><span class="line">    	&#125;</span><br><span class="line"></span><br><span class="line">    	<span class="keyword">select</span> &#123;</span><br><span class="line">        <span class="comment">// 在NSQD接收到来自客户端的SUB命令时，会将客户端订阅的channel写入client.subChannel</span></span><br><span class="line">    	<span class="keyword">case</span> subChannel = &lt;-subEventChan:</span><br><span class="line">    		<span class="comment">// you can't SUB anymore</span></span><br><span class="line">    		<span class="comment">// 在这里对subChannel赋值，每个Client只能订阅一个Topic，所以这里subEventChan会被置为nil</span></span><br><span class="line">    		subEventChan = <span class="literal">nil</span></span><br><span class="line">    	<span class="keyword">case</span> b := &lt;-backendMsgChan:</span><br><span class="line">    		<span class="comment">// backendMsgChan 收到消息，然后发送给Client</span></span><br><span class="line">    		msg, err := decodeMessage(b)</span><br><span class="line">    		err = p.SendMessage(client, msg)</span><br><span class="line">    		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    			<span class="keyword">goto</span> exit</span><br><span class="line">    		&#125;</span><br><span class="line">    		flushed = <span class="literal">false</span></span><br><span class="line">    	<span class="keyword">case</span> msg := &lt;-memoryMsgChan:</span><br><span class="line">            <span class="comment">// memeoryMsgChan 收到消息，然后发送给Client</span></span><br><span class="line">    		err = p.SendMessage(client, msg)</span><br><span class="line">    		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    			<span class="keyword">goto</span> exit</span><br><span class="line">    		&#125;</span><br><span class="line">    		flushed = <span class="literal">false</span></span><br><span class="line">    	&#125;</span><br><span class="line">    &#125;</span><br><span class="line">    ....</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="NSQD中消息从Topic流向Channel"><a href="#NSQD中消息从Topic流向Channel" class="headerlink" title="NSQD中消息从Topic流向Channel"></a>NSQD中消息从Topic流向Channel</h4><p>只要存在Topic和Channel并且不处于暂停状态，Topic下面的Message会通过下述方法不断的写入到Channel中。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="comment">// messagePump selects over the in-memory and backend queue and</span></span><br><span class="line"><span class="comment">// writes messages to every channel for this topic</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(t *Topic)</span> <span class="title">messagePump</span><span class="params">()</span></span> &#123;</span><br><span class="line"></span><br><span class="line">    ....</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 首先会做一些初始化等工作</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// main message loop</span></span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">        <span class="comment">// 这里会从memoryMsgChan和backendMsgChan中随机来获取消息，所以NSQD是不保证消息有序的。</span></span><br><span class="line">    	<span class="keyword">select</span> &#123;</span><br><span class="line">    	<span class="keyword">case</span> msg = &lt;-memoryMsgChan:</span><br><span class="line">    	<span class="keyword">case</span> buf = &lt;-backendChan:</span><br><span class="line">    		<span class="comment">// 如果从backendChan里面获取的消息，需要首先进行decode</span></span><br><span class="line">    		msg, err = decodeMessage(buf)</span><br><span class="line">    		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    			t.ctx.nsqd.logf(LOG_ERROR, <span class="string">"failed to decode message - %s"</span>, err)</span><br><span class="line">    			<span class="keyword">continue</span></span><br><span class="line">    		&#125;</span><br><span class="line">    	<span class="keyword">case</span> &lt;-t.exitChan:</span><br><span class="line">    		<span class="keyword">goto</span> exit</span><br><span class="line">    	&#125;</span><br><span class="line">    	<span class="comment">// Topic会把自己的消息分发给其下面的所有channel</span></span><br><span class="line">    	<span class="comment">// 每个channel都会得到这个消息的复本。所以不同channel之间互不影响。</span></span><br><span class="line">    	<span class="keyword">for</span> i, channel := <span class="keyword">range</span> chans &#123;</span><br><span class="line">    		chanMsg := msg</span><br><span class="line">    		<span class="comment">// copy the message because each channel</span></span><br><span class="line">    		<span class="comment">// needs a unique instance but...</span></span><br><span class="line">    		<span class="comment">// fastpath to avoid copy if its the first channel</span></span><br><span class="line">    		<span class="comment">// (the topic already created the first copy)</span></span><br><span class="line">    		<span class="keyword">if</span> i &gt; <span class="number">0</span> &#123;</span><br><span class="line">    			chanMsg = NewMessage(msg.ID, msg.Body)</span><br><span class="line">    			chanMsg.Timestamp = msg.Timestamp</span><br><span class="line">    			chanMsg.deferred = msg.deferred</span><br><span class="line">    		&#125;</span><br><span class="line">    		<span class="comment">// 将消息发送给Topic，和Topic接收消息相似，channel把消息写入其中的memoryMsgChan或者backendMsgChan</span></span><br><span class="line">    		err := channel.PutMessage(chanMsg)</span><br><span class="line">    		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    			t.ctx.nsqd.logf(LOG_ERROR, <span class="string">"TOPIC(%s) ERROR: failed to put msg(%s) to channel(%s) - %s"</span>, t.name, msg.ID, channel.name, err)</span><br><span class="line">    		&#125;</span><br><span class="line">    	&#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    ....</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="reference"><a href="#reference" class="headerlink" title="reference"></a>reference</h3><ul>
+<li>NSQ源码 <a href="https://github.com/nsqio/nsq" target="_blank" rel="noopener">https://github.com/nsqio/nsq</a></li>
+</ul>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/NSQ/" rel="tag"># NSQ</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/05/19/mysql-lock/" rel="next" title="Mysql锁">
+                <i class="fa fa-chevron-left"></i> Mysql锁
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/05/19/redis-pipeline/" rel="prev" title="Redis Pipeline">
+                Redis Pipeline <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image" src="/images/avatar.gif" alt="LiMingji">
+          <p class="site-author-name" itemprop="name">LiMingji</p>
+           
+              <p class="site-description motion-element" itemprop="description"></p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives/">
+                <span class="site-state-item-count">42</span>
+                <span class="site-state-item-name">日志</span>
+              </a>
+            </div>
+          
+
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">26</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#NSQD-消息处理整体流程"><span class="nav-number">1.</span> <span class="nav-text">NSQD 消息处理整体流程</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#memoryMsgChan-和-backendMsgChan"><span class="nav-number">1.1.</span> <span class="nav-text">memoryMsgChan 和 backendMsgChan</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#生产者"><span class="nav-number">1.2.</span> <span class="nav-text">生产者</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#消费者"><span class="nav-number">1.3.</span> <span class="nav-text">消费者</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#NSQD"><span class="nav-number">1.4.</span> <span class="nav-text">NSQD</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#历史消息问题"><span class="nav-number">1.5.</span> <span class="nav-text">历史消息问题</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#NSQD-消息处理相关源码分析"><span class="nav-number">2.</span> <span class="nav-text">NSQD 消息处理相关源码分析</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#NSQD接收客户端连接"><span class="nav-number">2.1.</span> <span class="nav-text">NSQD接收客户端连接</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#客户端向NSQD发送写命令"><span class="nav-number">2.2.</span> <span class="nav-text">客户端向NSQD发送写命令</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#客户端向NSQD发送读命令"><span class="nav-number">2.3.</span> <span class="nav-text">客户端向NSQD发送读命令</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#NSQD中消息从Topic流向Channel"><span class="nav-number">2.4.</span> <span class="nav-text">NSQD中消息从Topic流向Channel</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#reference"><span class="nav-number">3.</span> <span class="nav-text">reference</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">LiMingji</span>
+</div>
+
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+        
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.2"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://swanspouse.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'http://yoursite.com/2019/05/19/nsq-handle-message/';
+          this.page.identifier = '2019/05/19/nsq-handle-message/';
+          this.page.title = 'NSQD 消息处理流程';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://swanspouse.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

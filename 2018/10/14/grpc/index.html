@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.2" rel="stylesheet" type="text/css">
+
+
+  <meta name="keywords" content="go,">
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.2">
+
+
+
+
+
+
+<meta name="description" content="Go gRPC 基础通过route_guide($GOPATH/src/google.golang.org/grpc/examples/route_guide/routeguide)这个样例来了解grpc的使用，主要包括  在 .proto 文件中定义service。 使用protocol buffer compiler来生成server和client的代码。 使用Go gRPC API来写一个简">
+<meta name="keywords" content="go">
+<meta property="og:type" content="article">
+<meta property="og:title" content="go grpc 样例">
+<meta property="og:url" content="http://yoursite.com/2018/10/14/grpc/index.html">
+<meta property="og:site_name" content="鸡蛋蛋🥚">
+<meta property="og:description" content="Go gRPC 基础通过route_guide($GOPATH/src/google.golang.org/grpc/examples/route_guide/routeguide)这个样例来了解grpc的使用，主要包括  在 .proto 文件中定义service。 使用protocol buffer compiler来生成server和client的代码。 使用Go gRPC API来写一个简">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2019-05-19T02:32:11.951Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="go grpc 样例">
+<meta name="twitter:description" content="Go gRPC 基础通过route_guide($GOPATH/src/google.golang.org/grpc/examples/route_guide/routeguide)这个样例来了解grpc的使用，主要包括  在 .proto 文件中定义service。 使用protocol buffer compiler来生成server和client的代码。 使用Go gRPC API来写一个简">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"left","display":"hide","offset":12,"offset_float":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2018/10/14/grpc/">
+
+
+
+
+
+  <title>go grpc 样例 | 鸡蛋蛋🥚</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">鸡蛋蛋🥚</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br>
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-booklist">
+          <a href="/booklist/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-book"></i> <br>
+            
+            书单
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br>
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2018/10/14/grpc/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="LiMingji">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="鸡蛋蛋🥚">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">go grpc 样例</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-10-14T16:32:12+08:00">
+                2018-10-14
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/10/14/grpc/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2018/10/14/grpc/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h3 id="Go-gRPC-基础"><a href="#Go-gRPC-基础" class="headerlink" title="Go gRPC 基础"></a>Go gRPC 基础</h3><p>通过route_guide($GOPATH/src/google.golang.org/grpc/examples/route_guide/routeguide<br>)这个样例来了解grpc的使用，主要包括</p>
+<ul>
+<li>在 .proto 文件中定义service。</li>
+<li>使用protocol buffer compiler来生成server和client的代码。</li>
+<li>使用Go gRPC API来写一个简单的样例。</li>
+</ul>
+<p>在route_guide样例中，使用protocol buffer 的版本是proto3。</p>
+<h3 id="关于为什么使用gRPC"><a href="#关于为什么使用gRPC" class="headerlink" title="关于为什么使用gRPC"></a>关于为什么使用gRPC</h3><p>route_guide样例是一个地图应用，client可以查询它们路线上的景点、创建线路概要、或者和服务器以及其他client交换如交通状况等信息。</p>
+<p>使用gRPC，我们可以在 .proto 文件中定义我们的服务并使用任何gRPC支持的语言来进行实现。 这样使得我们的程序可以跨平台的运行。所有关于不同语言、环境的交互问题，都由gRPC来进行处理。 同时，通过使用protocol buffers，可以简化我们序列化、IDL和接口更新等工作。</p>
+<h3 id="获取样例代码"><a href="#获取样例代码" class="headerlink" title="获取样例代码"></a>获取样例代码</h3><p>样例代码在 grpc/grpc-go/examples/route_guide， 可以使用如下命令来进行获取：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span> go get google.golang.org/grpc</span><br></pre></td></tr></table></figure>
+<p>并改变当前目录到 grpc-go/examples/route_guide</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span> cd $GOPATH/src/google.golang.org/grpc/examples/route_guide</span><br></pre></td></tr></table></figure>
+<h3 id="定义service"><a href="#定义service" class="headerlink" title="定义service"></a>定义service</h3><p>第一步我们需要使用 protocol buffers 来定义gRPC service 和 方法的request、response。 可以参考 examples/route_guide/routeguide/route_guide.proto 文件</p>
+<p>在 .proto 文件中定义 service的名字</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">service RouteGuide &#123;</span><br><span class="line">   ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>然后在service中定义 rpc 方法，同时指定方法的request和response类型。gRPC支持4中service方法。这4种方法在 RouteGuide service中均有使用。</p>
+<h4 id="A-Simple-RPC-简单RPC"><a href="#A-Simple-RPC-简单RPC" class="headerlink" title="A Simple RPC 简单RPC"></a>A Simple RPC 简单RPC</h4><p>A Simple RPC: 一个 client request对象对应一个server response对象。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Obtains the feature at a given position.</span></span><br><span class="line">rpc GetFeature(Point) returns (Feature) &#123;&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="A-Server-side-Streaming-RPC-服务端流式RPC"><a href="#A-Server-side-Streaming-RPC-服务端流式RPC" class="headerlink" title="A Server-side Streaming RPC 服务端流式RPC"></a>A Server-side Streaming RPC 服务端流式RPC</h4><p>A server-side streaming RPC: 一个client request对象对应多个server response对象。 通过在 response 类型之前加上stream 关键字来实现服务端流式方法。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Obtains the Features available within the given Rectangle.  Results are</span></span><br><span class="line"><span class="comment">// streamed rather than returned at once (e.g. in a response message with a</span></span><br><span class="line"><span class="comment">// repeated field), as the rectangle may cover a large area and contain a</span></span><br><span class="line"><span class="comment">// huge number of features.</span></span><br><span class="line">rpc ListFeatures(Rectangle) returns (stream Feature) &#123;&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="A-Client-side-streaming-RPC-客户端流式RPC"><a href="#A-Client-side-streaming-RPC-客户端流式RPC" class="headerlink" title="A Client-side streaming RPC 客户端流式RPC"></a>A Client-side streaming RPC 客户端流式RPC</h4><p>A client-side streaming RPC: 多个client request对应一个server response。 通过在 request 类型之前加上stream 关键字来实现客户端流式方法。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Accepts a stream of Points on a route being traversed, returning a</span></span><br><span class="line"><span class="comment">// RouteSummary when traversal is completed.</span></span><br><span class="line">rpc RecordRoute(stream Point) returns (RouteSummary) &#123;&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="A-Bidirectional-Streaming-RPC-双向流式RPC"><a href="#A-Bidirectional-Streaming-RPC-双向流式RPC" class="headerlink" title="A Bidirectional Streaming RPC  双向流式RPC"></a>A Bidirectional Streaming RPC  双向流式RPC</h4><p>A bidirectional streaming RPC: 多个 client request对应多个server response。通过在 request 和 response类型前都加上 stream关键字来实现双向流式RPC。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Accepts a stream of RouteNotes sent while a route is being traversed,</span></span><br><span class="line"><span class="comment">// while receiving other RouteNotes (e.g. from other users).</span></span><br><span class="line">rpc RouteChat(stream RouteNote) returns (stream RouteNote) &#123;&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="request-response-类型定义"><a href="#request-response-类型定义" class="headerlink" title="request response 类型定义"></a>request response 类型定义</h4><p>.proto 文件中包含了所有 protocol buffer中request和response类型的定义。例如:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Points are represented as latitude-longitude pairs in the E7 representation</span></span><br><span class="line"><span class="comment">// (degrees multiplied by 10**7 and rounded to the nearest integer).</span></span><br><span class="line"><span class="comment">// Latitudes should be in the range +/- 90 degrees and longitude should be in</span></span><br><span class="line"><span class="comment">// the range +/- 180 degrees (inclusive).</span></span><br><span class="line">message Point &#123;</span><br><span class="line">  <span class="keyword">int32</span> latitude = <span class="number">1</span>;</span><br><span class="line">  <span class="keyword">int32</span> longitude = <span class="number">2</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="生成-client-和-server-代码"><a href="#生成-client-和-server-代码" class="headerlink" title="生成 client 和 server 代码"></a>生成 client 和 server 代码</h3><p>接下来我们需要通过 .proto 文件生成gRPC client 和 server 接口。 我们可以使用 gRPC Go 插件来完成这件事情。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span> protoc --go_out=plugins=grpc:. route_guide.proto</span><br></pre></td></tr></table></figure>
+<p>通过执行上述命令，会在当前目录中生成 route_guide.pb.go 文件。这个文件中包含了</p>
+<p>All the protocol buffer code to populate, serialize, and retrieve our request and response message types<br>An interface type (or stub) for clients to call with the methods defined in the RouteGuide service.<br>An interface type for servers to implement, also with the methods defined in the RouteGuide service.</p>
+<ul>
+<li>所有用于发送、序列化、接收request和response的protocol buffer代码。</li>
+<li>所有调用 RouteGuide 服务的客户端接口。</li>
+<li>所有 server 需要实现的 RouteGuide 的接口。</li>
+</ul>
+<h3 id="创建Server"><a href="#创建Server" class="headerlink" title="创建Server"></a>创建Server</h3><p>实现RouteGuide服务，主要有两部分工作：</p>
+<ul>
+<li>实现服务中定义的所有接口: 在方法中对服务真正要做的工作进行处理。</li>
+<li>启动一个gRPC server 来监听并分发所有来自clients的request。</li>
+</ul>
+<p>server的相关代码在 grpc-go/examples/route_guide/server/server.go 中。</p>
+<h4 id="实现-RouteGuide"><a href="#实现-RouteGuide" class="headerlink" title="实现 RouteGuide"></a>实现 RouteGuide</h4><p>如下所示，routeGuideServer 实现了 RouteGuideServer 接口</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> routeGuideServer <span class="keyword">struct</span> &#123;</span><br><span class="line">        ...</span><br><span class="line">&#125;</span><br><span class="line">...</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *routeGuideServer)</span> <span class="title">GetFeature</span><span class="params">(ctx context.Context, point *pb.Point)</span> <span class="params">(*pb.Feature, error)</span></span> &#123;</span><br><span class="line">        ...</span><br><span class="line">&#125;</span><br><span class="line">...</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *routeGuideServer)</span> <span class="title">ListFeatures</span><span class="params">(rect *pb.Rectangle, stream pb.RouteGuide_ListFeaturesServer)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">        ...</span><br><span class="line">&#125;</span><br><span class="line">...</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *routeGuideServer)</span> <span class="title">RecordRoute</span><span class="params">(stream pb.RouteGuide_RecordRouteServer)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">        ...</span><br><span class="line">&#125;</span><br><span class="line">...</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *routeGuideServer)</span> <span class="title">RouteChat</span><span class="params">(stream pb.RouteGuide_RouteChatServer)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">        ...</span><br><span class="line">&#125;</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+<h4 id="Simple-RPC"><a href="#Simple-RPC" class="headerlink" title="Simple RPC"></a>Simple RPC</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *routeGuideServer)</span> <span class="title">GetFeature</span><span class="params">(ctx context.Context, point *pb.Point)</span> <span class="params">(*pb.Feature, error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">for</span> _, feature := <span class="keyword">range</span> s.savedFeatures &#123;</span><br><span class="line">		<span class="keyword">if</span> proto.Equal(feature.Location, point) &#123;</span><br><span class="line">			<span class="keyword">return</span> feature, <span class="literal">nil</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// No feature was found, return an unnamed feature</span></span><br><span class="line">	<span class="keyword">return</span> &amp;pb.Feature&#123;<span class="string">""</span>, point&#125;, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>该方法的输入参数有两个: RPC的上下文对象和 client的 Point protocol buffer request。返回了一个带有response 信息的Feature protocol buffer对象和error。 在这个方法中，server返回合适的Feature对象，同时返回一个空error来通知gRPC，server已经完成本次RPC请求，Feature可以被发送回client。</p>
+<h4 id="Server-side-streaming-RPC"><a href="#Server-side-streaming-RPC" class="headerlink" title="Server-side streaming RPC"></a>Server-side streaming RPC</h4><p>在服务器端流式RPC中，我们需要返回多个Feature给client。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *routeGuideServer)</span> <span class="title">ListFeatures</span><span class="params">(rect *pb.Rectangle, stream pb.RouteGuide_ListFeaturesServer)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">for</span> _, feature := <span class="keyword">range</span> s.savedFeatures &#123;</span><br><span class="line">		<span class="keyword">if</span> inRange(feature.Location, rect) &#123;</span><br><span class="line">			<span class="keyword">if</span> err := stream.Send(feature); err != <span class="literal">nil</span> &#123;</span><br><span class="line">				<span class="keyword">return</span> err</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在上述方法中，server端将所有符合条件的Feature返回给client，使用Send()方法将它们写入 RouteGuide_ListFeaturesServer 中。 在最后，和Simple RPC中的一样，server返回一个空error来通知gRPC已经写完response的数据了。如果在调用过程中出现了任何错误，serve会返回一个非空的error，gRPC会将error转换成一个合适的RPC状态返回给client。</p>
+<h4 id="Client-side-streaming-RPC"><a href="#Client-side-streaming-RPC" class="headerlink" title="Client-side streaming RPC"></a>Client-side streaming RPC</h4><p>在RecordRoute中，server从client端接收到多个Point对象并返回一个RouteSummary对象。如下代码所示，在本次请求中只有一个RouteGuide_RecordRouteServer对象，使用RouteGuide_RecordRouteServer中的Recv()方法接受对象，并通过SendAndClose()方法返回结果。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *routeGuideServer)</span> <span class="title">RecordRoute</span><span class="params">(stream pb.RouteGuide_RecordRouteServer)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> pointCount, featureCount, distance <span class="keyword">int32</span></span><br><span class="line">	<span class="keyword">var</span> lastPoint *pb.Point</span><br><span class="line">	startTime := time.Now()</span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		point, err := stream.Recv()</span><br><span class="line">		<span class="keyword">if</span> err == io.EOF &#123;</span><br><span class="line">			endTime := time.Now()</span><br><span class="line">			<span class="keyword">return</span> stream.SendAndClose(&amp;pb.RouteSummary&#123;</span><br><span class="line">				PointCount:   pointCount,</span><br><span class="line">				FeatureCount: featureCount,</span><br><span class="line">				Distance:     distance,</span><br><span class="line">				ElapsedTime:  <span class="keyword">int32</span>(endTime.Sub(startTime).Seconds()),</span><br><span class="line">			&#125;)</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> err</span><br><span class="line">		&#125;</span><br><span class="line">		pointCount++</span><br><span class="line">		<span class="keyword">for</span> _, feature := <span class="keyword">range</span> s.savedFeatures &#123;</span><br><span class="line">			<span class="keyword">if</span> proto.Equal(feature.Location, point) &#123;</span><br><span class="line">				featureCount++</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> lastPoint != <span class="literal">nil</span> &#123;</span><br><span class="line">			distance += calcDistance(lastPoint, point)</span><br><span class="line">		&#125;</span><br><span class="line">		lastPoint = point</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在上述方法中，server使用RouteGuide_RecordRouteServers Recv()来反复读取client的请求，server需要在每次调用Recv()方法之后对返回的error进行检查，如果err为空，则说明当前的数据流是好的，并且可以继续从中读取数据；直到 error == io.EOF， 说明stream中已经没有数据，server可以返回RouteSummary。如果error 还有其他的值，server端会返回error，和Server-side streaming RPC中一样，error会被gRPC转换成特殊的RPC状态，返回给client。</p>
+<h4 id="Bidirectional-streaming-RPC"><a href="#Bidirectional-streaming-RPC" class="headerlink" title="Bidirectional streaming RPC"></a>Bidirectional streaming RPC</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *routeGuideServer)</span> <span class="title">RouteChat</span><span class="params">(stream pb.RouteGuide_RouteChatServer)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		in, err := stream.Recv()</span><br><span class="line">		<span class="keyword">if</span> err == io.EOF &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> err</span><br><span class="line">		&#125;</span><br><span class="line">		key := serialize(in.Location)</span><br><span class="line">    ... <span class="comment">// look for notes to be sent to client</span></span><br><span class="line">		<span class="keyword">for</span> _, note := <span class="keyword">range</span> s.routeNotes[key] &#123;</span><br><span class="line">			<span class="keyword">if</span> err := stream.Send(note); err != <span class="literal">nil</span> &#123;</span><br><span class="line">				<span class="keyword">return</span> err</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在双向流式RPC中读写request和response的方法和其方法类似。</p>
+<h4 id="Starting-the-server"><a href="#Starting-the-server" class="headerlink" title="Starting the server"></a>Starting the server</h4><p>在实现了所有方法时候，我们需要启动一个gRPC server以便client可以进行调用。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">flag.Parse()</span><br><span class="line">lis, err := net.Listen(<span class="string">"tcp"</span>, fmt.Sprintf(<span class="string">"localhost:%d"</span>, *port))</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        log.Fatalf(<span class="string">"failed to listen: %v"</span>, err)</span><br><span class="line">&#125;</span><br><span class="line">grpcServer := grpc.NewServer()</span><br><span class="line">pb.RegisterRouteGuideServer(grpcServer, &amp;routeGuideServer&#123;&#125;)</span><br><span class="line">... <span class="comment">// determine whether to use TLS</span></span><br><span class="line">grpcServer.Serve(lis)</span><br></pre></td></tr></table></figure>
+<ul>
+<li>首先指定需要进行监听的端口号, err := net.Listen(“tcp”, fmt.Sprintf(“localhost:%d”, *port))。</li>
+<li>使用 grpc.NewServer()创建一个gPRC server的实例。</li>
+<li>注册实现的gRPC server 。</li>
+<li>在server端调用Serve()方法开始提供服务，直到进程被杀掉或者调用了Stop()方法。</li>
+</ul>
+<h3 id="创建-client"><a href="#创建-client" class="headerlink" title="创建 client"></a>创建 client</h3><p>client 的代码在 grpc-go/examples/route_guide/client/client.go。</p>
+<h4 id="创建stub"><a href="#创建stub" class="headerlink" title="创建stub"></a>创建stub</h4><p>为了调用service的方法，我们首先需要通过grpc.Dail()创建一个gRPC通道来和server进行通信。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">conn, err := grpc.Dial(*serverAddr)</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">defer</span> conn.Close()</span><br></pre></td></tr></table></figure>
+<p>如果service需要的话，可以在DialOptions中设定授权信息，</p>
+<p>当 gRPC 通过创建完之后，我们需要一个client stub 来进行RPC调用。 可以使用通过 .proto 文件生成的pb包中的NewRouteGuideClient方法来创建client stub。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">client := pb.NewRouteGuideClient(conn)</span><br></pre></td></tr></table></figure>
+<h4 id="Calling-service-methods"><a href="#Calling-service-methods" class="headerlink" title="Calling service methods"></a>Calling service methods</h4><p>在gRPC-GO中，RPC调用都是同步阻塞模式。这意味着，client进行RPC调用之后会一直阻塞，直到server返回结果或者错误。</p>
+<h4 id="Simple-RPC-1"><a href="#Simple-RPC-1" class="headerlink" title="Simple RPC"></a>Simple RPC</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">feature, err := client.GetFeature(ctx, &amp;pb.Point&#123;<span class="number">409146138</span>, <span class="number">-746188906</span>&#125;)</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上述代码所示，通过client stub调用GetFeature()方法。在输入参数中，除request protocol buffer对象外，还有一个context.Context对象，通过context对象，可以在需要的时候改变RPC的一些参数。如超时时间等。 如果方法调用没有返回错误，client可以在response的第一个返回值中读取server返回的结果。</p>
+<h4 id="Server-side-streaming-RPC-1"><a href="#Server-side-streaming-RPC-1" class="headerlink" title="Server-side streaming RPC"></a>Server-side streaming RPC</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">rect := &amp;pb.Rectangle&#123; ... &#125;  <span class="comment">// initialize a pb.Rectangle</span></span><br><span class="line">stream, err := client.ListFeatures(ctx, rect)</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">for</span> &#123;</span><br><span class="line">    feature, err := stream.Recv()</span><br><span class="line">    <span class="keyword">if</span> err == io.EOF &#123;</span><br><span class="line">        <span class="keyword">break</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        log.Fatalf(<span class="string">"%v.ListFeatures(_) = _, %v"</span>, client, err)</span><br><span class="line">    &#125;</span><br><span class="line">    log.Println(feature)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>和simple RPC一样，输入参数是一个context和一个request对象。但是返回值为RouteGuide_ListFeaturesClient，通过RouteGuide_ListFeaturesClient的 Recv()方法，client 可以获取server所有的response。同理， client在调用Recv()方法之后，需要对返回的error进行检查。</p>
+<h4 id="Client-side-streaming-RPC-1"><a href="#Client-side-streaming-RPC-1" class="headerlink" title="Client-side streaming RPC"></a>Client-side streaming RPC</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Create a random number of random points</span></span><br><span class="line">r := rand.New(rand.NewSource(time.Now().UnixNano()))</span><br><span class="line">pointCount := <span class="keyword">int</span>(r.Int31n(<span class="number">100</span>)) + <span class="number">2</span> <span class="comment">// Traverse at least two points</span></span><br><span class="line"><span class="keyword">var</span> points []*pb.Point</span><br><span class="line"><span class="keyword">for</span> i := <span class="number">0</span>; i &lt; pointCount; i++ &#123;</span><br><span class="line">	points = <span class="built_in">append</span>(points, randomPoint(r))</span><br><span class="line">&#125;</span><br><span class="line">log.Printf(<span class="string">"Traversing %d points."</span>, <span class="built_in">len</span>(points))</span><br><span class="line">stream, err := client.RecordRoute(ctx)</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">	log.Fatalf(<span class="string">"%v.RecordRoute(_) = _, %v"</span>, client, err)</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">for</span> _, point := <span class="keyword">range</span> points &#123;</span><br><span class="line">	<span class="keyword">if</span> err := stream.Send(point); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatalf(<span class="string">"%v.Send(%v) = %v"</span>, stream, point, err)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line">reply, err := stream.CloseAndRecv()</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">	log.Fatalf(<span class="string">"%v.CloseAndRecv() got error %v, want %v"</span>, stream, err, <span class="literal">nil</span>)</span><br><span class="line">&#125;</span><br><span class="line">log.Printf(<span class="string">"Route summary: %v"</span>, reply)</span><br></pre></td></tr></table></figure>
+<p>client 通过RouteGuide_RecordRouteClient的Send()方法向server发送request，当request发送结束之后，需要调用CloseAndRecv()方法来通知gRPC client已经发送完所有的request，并开始等待接受response。 当client接收到CloseAndRecv()的返回值后，如果error是空， 那么CloseAndRecv()就是一个有效的server返回值。</p>
+<h4 id="Bidirectional-streaming-RPC-1"><a href="#Bidirectional-streaming-RPC-1" class="headerlink" title="Bidirectional streaming RPC"></a>Bidirectional streaming RPC</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">stream, err := client.RouteChat(ctx)</span><br><span class="line">waitc := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;)</span><br><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		in, err := stream.Recv()</span><br><span class="line">		<span class="keyword">if</span> err == io.EOF &#123;</span><br><span class="line">			<span class="comment">// read done.</span></span><br><span class="line">			<span class="built_in">close</span>(waitc)</span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			log.Fatalf(<span class="string">"Failed to receive a note : %v"</span>, err)</span><br><span class="line">		&#125;</span><br><span class="line">		log.Printf(<span class="string">"Got message %s at point(%d, %d)"</span>, in.Message, in.Location.Latitude, in.Location.Longitude)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;()</span><br><span class="line"><span class="keyword">for</span> _, note := <span class="keyword">range</span> notes &#123;</span><br><span class="line">	<span class="keyword">if</span> err := stream.Send(note); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatalf(<span class="string">"Failed to send a note: %v"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line">stream.CloseSend()</span><br><span class="line">&lt;-waitc</span><br></pre></td></tr></table></figure>
+<p>在双向流式RPC中，除了调用CloseSend()方法，读写请求的方法和client-side streaming中的方法类似。在双向流式RPC中，读写请求是完全独立的。</p>
+<h3 id="运行sample"><a href="#运行sample" class="headerlink" title="运行sample"></a>运行sample</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cd $GOPATH/src/google.golang.org/grpc/examples/route_guide</span><br></pre></td></tr></table></figure>
+<p>启动server，启动client</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span> go run server/server.go</span><br><span class="line"><span class="meta">$</span> go run client/client.go</span><br></pre></td></tr></table></figure>
+<h3 id="reference"><a href="#reference" class="headerlink" title="reference"></a>reference</h3><ul>
+<li><a href="https://github.com/grpc/grpc-go/blob/master/examples/gotutorial.md" target="_blank" rel="noopener">https://github.com/grpc/grpc-go/blob/master/examples/gotutorial.md</a></li>
+</ul>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/go/" rel="tag"># go</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/09/09/tcp/" rel="next" title="TCP三次握手、四次挥手">
+                <i class="fa fa-chevron-left"></i> TCP三次握手、四次挥手
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/10/15/go-channel/" rel="prev" title="深入理解 go channel">
+                深入理解 go channel <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image" src="/images/avatar.gif" alt="LiMingji">
+          <p class="site-author-name" itemprop="name">LiMingji</p>
+           
+              <p class="site-description motion-element" itemprop="description"></p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives/">
+                <span class="site-state-item-count">42</span>
+                <span class="site-state-item-name">日志</span>
+              </a>
+            </div>
+          
+
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">26</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#Go-gRPC-基础"><span class="nav-number">1.</span> <span class="nav-text">Go gRPC 基础</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#关于为什么使用gRPC"><span class="nav-number">2.</span> <span class="nav-text">关于为什么使用gRPC</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#获取样例代码"><span class="nav-number">3.</span> <span class="nav-text">获取样例代码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#定义service"><span class="nav-number">4.</span> <span class="nav-text">定义service</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#A-Simple-RPC-简单RPC"><span class="nav-number">4.1.</span> <span class="nav-text">A Simple RPC 简单RPC</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#A-Server-side-Streaming-RPC-服务端流式RPC"><span class="nav-number">4.2.</span> <span class="nav-text">A Server-side Streaming RPC 服务端流式RPC</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#A-Client-side-streaming-RPC-客户端流式RPC"><span class="nav-number">4.3.</span> <span class="nav-text">A Client-side streaming RPC 客户端流式RPC</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#A-Bidirectional-Streaming-RPC-双向流式RPC"><span class="nav-number">4.4.</span> <span class="nav-text">A Bidirectional Streaming RPC  双向流式RPC</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#request-response-类型定义"><span class="nav-number">4.5.</span> <span class="nav-text">request response 类型定义</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#生成-client-和-server-代码"><span class="nav-number">5.</span> <span class="nav-text">生成 client 和 server 代码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#创建Server"><span class="nav-number">6.</span> <span class="nav-text">创建Server</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#实现-RouteGuide"><span class="nav-number">6.1.</span> <span class="nav-text">实现 RouteGuide</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Simple-RPC"><span class="nav-number">6.2.</span> <span class="nav-text">Simple RPC</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Server-side-streaming-RPC"><span class="nav-number">6.3.</span> <span class="nav-text">Server-side streaming RPC</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Client-side-streaming-RPC"><span class="nav-number">6.4.</span> <span class="nav-text">Client-side streaming RPC</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Bidirectional-streaming-RPC"><span class="nav-number">6.5.</span> <span class="nav-text">Bidirectional streaming RPC</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Starting-the-server"><span class="nav-number">6.6.</span> <span class="nav-text">Starting the server</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#创建-client"><span class="nav-number">7.</span> <span class="nav-text">创建 client</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#创建stub"><span class="nav-number">7.1.</span> <span class="nav-text">创建stub</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Calling-service-methods"><span class="nav-number">7.2.</span> <span class="nav-text">Calling service methods</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Simple-RPC-1"><span class="nav-number">7.3.</span> <span class="nav-text">Simple RPC</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Server-side-streaming-RPC-1"><span class="nav-number">7.4.</span> <span class="nav-text">Server-side streaming RPC</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Client-side-streaming-RPC-1"><span class="nav-number">7.5.</span> <span class="nav-text">Client-side streaming RPC</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Bidirectional-streaming-RPC-1"><span class="nav-number">7.6.</span> <span class="nav-text">Bidirectional streaming RPC</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#运行sample"><span class="nav-number">8.</span> <span class="nav-text">运行sample</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#reference"><span class="nav-number">9.</span> <span class="nav-text">reference</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">LiMingji</span>
+</div>
+
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+        
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.2"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://swanspouse.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'http://yoursite.com/2018/10/14/grpc/';
+          this.page.identifier = '2018/10/14/grpc/';
+          this.page.title = 'go grpc 样例';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://swanspouse.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

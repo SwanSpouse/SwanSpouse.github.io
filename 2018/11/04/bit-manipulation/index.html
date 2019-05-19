@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.2" rel="stylesheet" type="text/css">
+
+
+  <meta name="keywords" content="algorithm,">
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.2">
+
+
+
+
+
+
+<meta name="description" content="位运算简介（WIKI）Bit manipulation is the act of algorithmically manipulating bits or other pieces of data shorter than a word. 需要进行位运算的程序包括：低层设备控制、错误检测、校正算法、数据压缩、加密算法和一些优化。 For most other tasks, modern prog">
+<meta name="keywords" content="algorithm">
+<meta property="og:type" content="article">
+<meta property="og:title" content="常见位运算">
+<meta property="og:url" content="http://yoursite.com/2018/11/04/bit-manipulation/index.html">
+<meta property="og:site_name" content="鸡蛋蛋🥚">
+<meta property="og:description" content="位运算简介（WIKI）Bit manipulation is the act of algorithmically manipulating bits or other pieces of data shorter than a word. 需要进行位运算的程序包括：低层设备控制、错误检测、校正算法、数据压缩、加密算法和一些优化。 For most other tasks, modern prog">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:image" content="https://s1.ax1x.com/2018/11/04/i5c3gH.png">
+<meta property="og:updated_time" content="2019-05-19T02:32:11.946Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="常见位运算">
+<meta name="twitter:description" content="位运算简介（WIKI）Bit manipulation is the act of algorithmically manipulating bits or other pieces of data shorter than a word. 需要进行位运算的程序包括：低层设备控制、错误检测、校正算法、数据压缩、加密算法和一些优化。 For most other tasks, modern prog">
+<meta name="twitter:image" content="https://s1.ax1x.com/2018/11/04/i5c3gH.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"left","display":"hide","offset":12,"offset_float":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2018/11/04/bit-manipulation/">
+
+
+
+
+
+  <title>常见位运算 | 鸡蛋蛋🥚</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">鸡蛋蛋🥚</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br>
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-booklist">
+          <a href="/booklist/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-book"></i> <br>
+            
+            书单
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br>
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2018/11/04/bit-manipulation/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="LiMingji">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="鸡蛋蛋🥚">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">常见位运算</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-11-04T21:53:28+08:00">
+                2018-11-04
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/11/04/bit-manipulation/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2018/11/04/bit-manipulation/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h3 id="位运算简介（WIKI）"><a href="#位运算简介（WIKI）" class="headerlink" title="位运算简介（WIKI）"></a>位运算简介（WIKI）</h3><p>Bit manipulation is the act of algorithmically manipulating bits or other pieces of data shorter than a word. 需要进行位运算的程序包括：低层设备控制、错误检测、校正算法、数据压缩、加密算法和一些优化。 For most other tasks, modern programming languages allow the programmer to work directly with abstractions instead of bits that represent those abstractions. Source code that does bit manipulation makes use of the bitwise operations: AND, OR, XOR, NOT, and bit shifts.</p>
+<p>在某些情况下，位操作可以消除或减少在数据结构上使用的循环，同时因为位操作是并行处理的，所以使用位运算可以成倍的提高代码运行的速度。但是，使用位运算可能会导致代码变得更加难以编写和维护。</p>
+<h3 id="位运算基本操作"><a href="#位运算基本操作" class="headerlink" title="位运算基本操作"></a>位运算基本操作</h3><ol>
+<li>Set union A | B</li>
+<li>Set intersection A &amp; B</li>
+<li>Set subtraction A &amp; ~B</li>
+<li>Set negation ALL_BITS ^ A or ~A</li>
+<li>Set bit A |= 1 &lt;&lt; bit</li>
+<li>Clear bit A &amp;= ~(1 &lt;&lt; bit)</li>
+<li>Test bit (A &amp; 1 &lt;&lt; bit) != 0</li>
+<li>Extract last bit A&amp;-A or A&amp;~(A-1) or x^(x&amp;(x-1))</li>
+<li>Remove last bit A&amp;(A-1)</li>
+<li>Get all 1-bits ~0</li>
+</ol>
+<h3 id="Bit操作实例"><a href="#Bit操作实例" class="headerlink" title="Bit操作实例"></a>Bit操作实例</h3><h4 id="Count-the-number-of-ones-in-the-binary-representation-of-the-given-number"><a href="#Count-the-number-of-ones-in-the-binary-representation-of-the-given-number" class="headerlink" title="Count the number of ones in the binary representation of the given number"></a>Count the number of ones in the binary representation of the given number</h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">count_one</span><span class="params">(<span class="keyword">int</span> n)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">while</span>(n) &#123;</span><br><span class="line">        n = n &amp; (n<span class="number">-1</span>);</span><br><span class="line">        count++;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> count;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>n-1意思是：从后向前，找到最后一个不为0的bit，把它置为0；从后向前，把末尾所有的0都置为1。</p>
+<p>n &amp; (n -1) 可以理解为移除从后向前的第一个1。</p>
+<p><img src="https://s1.ax1x.com/2018/11/04/i5c3gH.png" alt="count one"></p>
+<h4 id="Is-power-of-four"><a href="#Is-power-of-four" class="headerlink" title="Is power of four"></a>Is power of four</h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">bool</span> <span class="title">isPowerOfFour</span><span class="params">(<span class="keyword">int</span> n)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> (n &amp; (n - <span class="number">1</span>)) == <span class="number">0</span> &amp;&amp; (n &amp; <span class="number">0x55555555</span>) != <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>首先，为4的幂次的数有一个特点就是只有一位是1，且这个1要出现在奇数位上，例如：1: 1, 4: 100, 16: 10000。所以首先要判断1的个数是否是1个，然后再判断1的位置是否在奇数位上。</p>
+<p>n &amp; (n - 1) == 0 表示n的二进制表示中，只有一位是1，其余位数全为0。</p>
+<p>n &amp; 0x55555555 表示保留所有奇数位的数值，并将偶数位的数值置为0，因为5的二进制表示是0101。 (n &amp; 0x55555555) != 0 表示奇数位上并不都是0。</p>
+<p>n &amp; (n - 1) == 0 &amp;&amp; (n &amp; 0x55555555) 的意思是：二进制表示的数中只有一位是1，并且这个1在奇数位上。</p>
+<h4 id="Sum-of-Two-Integers"><a href="#Sum-of-Two-Integers" class="headerlink" title="Sum of Two Integers"></a>Sum of Two Integers</h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">getSum</span><span class="params">(<span class="keyword">int</span> a, <span class="keyword">int</span> b)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> b==<span class="number">0</span>? a:getSum(a^b, (a&amp;b)&lt;&lt;<span class="number">1</span>); <span class="comment">//be careful about the terminating condition;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>和笔算加法相同。对于二进制数的而言，对应位相加就可以使用异或（xor）操作，计算进位就可以使用与（and）操作，在下一步进行对应位相加前，对进位数使用移位操作（&lt;&lt;）。</p>
+<h4 id="Missing-Number"><a href="#Missing-Number" class="headerlink" title="Missing Number"></a>Missing Number</h4><p>Given an array containing n distinct numbers taken from 0, 1, 2, …, n, find the one that is missing from the array. For example, Given nums = [0, 1, 3] return 2. (Of course, you can do this by math.)</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">missingNumber</span><span class="params">(<span class="built_in">vector</span>&lt;<span class="keyword">int</span>&gt;&amp; nums)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> ret = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">for</span>(<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; nums.size(); ++i) &#123;</span><br><span class="line">        ret ^= i;</span><br><span class="line">        ret ^= nums[i];</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> ret^=nums.size();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>利用了A xor A = 0 这个性质。</p>
+<h4 id="Keep-as-many-1-bits-as-possible"><a href="#Keep-as-many-1-bits-as-possible" class="headerlink" title="Keep as many 1-bits as possible"></a>Keep as many 1-bits as possible</h4><p>Find the largest power of 2 (most significant bit in binary form), which is less than or equal to the given number N.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">long</span> <span class="title">largest_power</span><span class="params">(<span class="keyword">long</span> N)</span> </span>&#123;</span><br><span class="line">    <span class="comment">//changing all right side bits to 1.</span></span><br><span class="line">    N = N | (N&gt;&gt;<span class="number">1</span>);</span><br><span class="line">    N = N | (N&gt;&gt;<span class="number">2</span>);</span><br><span class="line">    N = N | (N&gt;&gt;<span class="number">4</span>);</span><br><span class="line">    N = N | (N&gt;&gt;<span class="number">8</span>);</span><br><span class="line">    N = N | (N&gt;&gt;<span class="number">16</span>);</span><br><span class="line">    <span class="keyword">return</span> (N+<span class="number">1</span>)&gt;&gt;<span class="number">1</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>将首位1后面的所有位变成1。然后 + 1 再右移1位。</p>
+<p>N = N | (N&gt;&gt;1); 相当于把首位的1复制一下，这样就保证了首位是11.<br>N = N | (N&gt;&gt;2); 相当于把首位的11复制一下，这样就保证了首位是1111.<br>N = N | (N&gt;&gt;4); 相当于把首位的1111复制一下，这样就保证了首位是11111111.<br>N = N | (N&gt;&gt;8); 相当于把首位的8个1复制一下，这样就保证了首位有16个1.<br>N = N | (N&gt;&gt;16); 相当于把首位的16个1复制一下，这样就保证了首位32个1.</p>
+<p>对于int64的整型来说，正数有32位，上述做法能够保证32位正整数有效。</p>
+<h4 id="Reverse-Bits"><a href="#Reverse-Bits" class="headerlink" title="Reverse Bits"></a>Reverse Bits</h4><p>Reverse bits of a given 32 bits unsigned integer.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">uint32_t</span> reverseBits(<span class="keyword">uint32_t</span> n) &#123;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> mask = <span class="number">1</span>&lt;&lt;<span class="number">31</span>, res = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">for</span>(<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">32</span>; ++i) &#123;</span><br><span class="line">        <span class="keyword">if</span>(n &amp; <span class="number">1</span>) res |= mask;</span><br><span class="line">        mask &gt;&gt;= <span class="number">1</span>;</span><br><span class="line">        n &gt;&gt;= <span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> res;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="Bitwise-AND-of-Numbers-Range"><a href="#Bitwise-AND-of-Numbers-Range" class="headerlink" title="Bitwise AND of Numbers Range"></a>Bitwise AND of Numbers Range</h4><p>Given a range [m, n] where 0 &lt;= m &lt;= n &lt;= 2147483647, return the bitwise AND of all numbers in this range, inclusive. For example, given the range [5, 7], you should return 4.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">rangeBitwiseAnd</span><span class="params">(<span class="keyword">int</span> m, <span class="keyword">int</span> n)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> a = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">while</span>(m != n) &#123;</span><br><span class="line">        m &gt;&gt;= <span class="number">1</span>;</span><br><span class="line">        n &gt;&gt;= <span class="number">1</span>;</span><br><span class="line">        a++;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> m&lt;&lt;a;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如果位数不同的话，那么所有数按位AND操作的话结果是0。</p>
+<p>中间的循环，目的就是为了找到m和n首部相同的部分（共有多少位相同，例如5：101、7:111，只有首位相同，那么结果为 1 &lt;&lt; 2 = 4）。</p>
+<h4 id="Majority-Element"><a href="#Majority-Element" class="headerlink" title="Majority Element"></a>Majority Element</h4><p>Given an array of size n, find the majority element. The majority element is the element that appears more than ⌊ n/2 ⌋ times. (bit-counting as a usual way, but here we actually also can adopt sorting and Moore Voting Algorithm)</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">majorityElement</span><span class="params">(<span class="built_in">vector</span>&lt;<span class="keyword">int</span>&gt;&amp; nums)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> len = <span class="keyword">sizeof</span>(<span class="keyword">int</span>) * <span class="number">8</span>, size = nums.size();</span><br><span class="line">    <span class="keyword">int</span> count = <span class="number">0</span>, mask = <span class="number">1</span>, ret = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">for</span>(<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; len; ++i) &#123;</span><br><span class="line">        count = <span class="number">0</span>;</span><br><span class="line">        <span class="keyword">for</span>(<span class="keyword">int</span> j = <span class="number">0</span>; j &lt; size; ++j)</span><br><span class="line">            <span class="keyword">if</span>(mask &amp; nums[j]) count++;</span><br><span class="line">        <span class="keyword">if</span>(count &gt; size/<span class="number">2</span>) ret |= mask;</span><br><span class="line">        mask &lt;&lt;= <span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> ret;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="Single-Number-III"><a href="#Single-Number-III" class="headerlink" title="Single Number III"></a>Single Number III</h4><p>Given an array of integers, every element appears three times except for one. Find that single one. (Still this type can be solved by bit-counting easily.) But we are going to solve it by digital logic design</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//inspired by logical circuit design and boolean algebra;</span></span><br><span class="line"><span class="comment">//counter - unit of 3;</span></span><br><span class="line"><span class="comment">//current   incoming  next</span></span><br><span class="line"><span class="comment">//a b            c    a b</span></span><br><span class="line"><span class="comment">//0 0            0    0 0</span></span><br><span class="line"><span class="comment">//0 1            0    0 1</span></span><br><span class="line"><span class="comment">//1 0            0    1 0</span></span><br><span class="line"><span class="comment">//0 0            1    0 1</span></span><br><span class="line"><span class="comment">//0 1            1    1 0</span></span><br><span class="line"><span class="comment">//1 0            1    0 0</span></span><br><span class="line"><span class="comment">//a = a&amp;~b&amp;~c + ~a&amp;b&amp;c;</span></span><br><span class="line"><span class="comment">//b = ~a&amp;b&amp;~c + ~a&amp;~b&amp;c;</span></span><br><span class="line"><span class="comment">//return a|b since the single number can appear once or twice;</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">singleNumber</span><span class="params">(<span class="built_in">vector</span>&lt;<span class="keyword">int</span>&gt;&amp; nums)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> t = <span class="number">0</span>, a = <span class="number">0</span>, b = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">for</span>(<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; nums.size(); ++i) &#123;</span><br><span class="line">        t = (a&amp;~b&amp;~nums[i]) | (~a&amp;b&amp;nums[i]);</span><br><span class="line">        b = (~a&amp;b&amp;~nums[i]) | (~a&amp;~b&amp;nums[i]);</span><br><span class="line">        a = t;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> a | b;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="reference"><a href="#reference" class="headerlink" title="reference"></a>reference</h3><ul>
+<li><a href="https://leetcode.com/problems/sum-of-two-integers/discuss/84278/A-summary%3A-how-to-use-bit-manipulation-to-solve-problems-easily-and-efficiently" target="_blank" rel="noopener">https://leetcode.com/problems/sum-of-two-integers/discuss/84278/A-summary%3A-how-to-use-bit-manipulation-to-solve-problems-easily-and-efficiently</a></li>
+</ul>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/algorithm/" rel="tag"># algorithm</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/10/23/byzantine-generals-problem/" rel="next" title="拜占庭将军问题">
+                <i class="fa fa-chevron-left"></i> 拜占庭将军问题
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/11/18/golang-reflect-type-kind-value/" rel="prev" title="golang 反射中的Type Value 和 Kind">
+                golang 反射中的Type Value 和 Kind <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image" src="/images/avatar.gif" alt="LiMingji">
+          <p class="site-author-name" itemprop="name">LiMingji</p>
+           
+              <p class="site-description motion-element" itemprop="description"></p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives/">
+                <span class="site-state-item-count">42</span>
+                <span class="site-state-item-name">日志</span>
+              </a>
+            </div>
+          
+
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">26</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#位运算简介（WIKI）"><span class="nav-number">1.</span> <span class="nav-text">位运算简介（WIKI）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#位运算基本操作"><span class="nav-number">2.</span> <span class="nav-text">位运算基本操作</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Bit操作实例"><span class="nav-number">3.</span> <span class="nav-text">Bit操作实例</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Count-the-number-of-ones-in-the-binary-representation-of-the-given-number"><span class="nav-number">3.1.</span> <span class="nav-text">Count the number of ones in the binary representation of the given number</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Is-power-of-four"><span class="nav-number">3.2.</span> <span class="nav-text">Is power of four</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Sum-of-Two-Integers"><span class="nav-number">3.3.</span> <span class="nav-text">Sum of Two Integers</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Missing-Number"><span class="nav-number">3.4.</span> <span class="nav-text">Missing Number</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Keep-as-many-1-bits-as-possible"><span class="nav-number">3.5.</span> <span class="nav-text">Keep as many 1-bits as possible</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Reverse-Bits"><span class="nav-number">3.6.</span> <span class="nav-text">Reverse Bits</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Bitwise-AND-of-Numbers-Range"><span class="nav-number">3.7.</span> <span class="nav-text">Bitwise AND of Numbers Range</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Majority-Element"><span class="nav-number">3.8.</span> <span class="nav-text">Majority Element</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Single-Number-III"><span class="nav-number">3.9.</span> <span class="nav-text">Single Number III</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#reference"><span class="nav-number">4.</span> <span class="nav-text">reference</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">LiMingji</span>
+</div>
+
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+        
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.2"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://swanspouse.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'http://yoursite.com/2018/11/04/bit-manipulation/';
+          this.page.identifier = '2018/11/04/bit-manipulation/';
+          this.page.title = '常见位运算';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://swanspouse.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.2" rel="stylesheet" type="text/css">
+
+
+  <meta name="keywords" content="NSQ,">
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.2">
+
+
+
+
+
+
+<meta name="description" content="在NSQ中，有两个最小堆实现的优先级队列，分别为: PriorityQueue，inFlightPqueue。分别用作延迟消息和消息的at least once机制。 堆排序(以大顶堆为例)堆排序的基本操作:  MAX-HEAPIFY ： 运行时间为O(logn)，是保持最大堆性质的关键。 BUILD-MAX-HEAP：以线性时间运行，可以在无序的输入数组基础上构造出大顶堆。 HEAP-SORT：">
+<meta name="keywords" content="NSQ">
+<meta property="og:type" content="article">
+<meta property="og:title" content="NSQ中的优先级队列">
+<meta property="og:url" content="http://yoursite.com/2018/11/29/nsq-pqueue/index.html">
+<meta property="og:site_name" content="鸡蛋蛋🥚">
+<meta property="og:description" content="在NSQ中，有两个最小堆实现的优先级队列，分别为: PriorityQueue，inFlightPqueue。分别用作延迟消息和消息的at least once机制。 堆排序(以大顶堆为例)堆排序的基本操作:  MAX-HEAPIFY ： 运行时间为O(logn)，是保持最大堆性质的关键。 BUILD-MAX-HEAP：以线性时间运行，可以在无序的输入数组基础上构造出大顶堆。 HEAP-SORT：">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2019-05-19T02:32:11.954Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="NSQ中的优先级队列">
+<meta name="twitter:description" content="在NSQ中，有两个最小堆实现的优先级队列，分别为: PriorityQueue，inFlightPqueue。分别用作延迟消息和消息的at least once机制。 堆排序(以大顶堆为例)堆排序的基本操作:  MAX-HEAPIFY ： 运行时间为O(logn)，是保持最大堆性质的关键。 BUILD-MAX-HEAP：以线性时间运行，可以在无序的输入数组基础上构造出大顶堆。 HEAP-SORT：">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"left","display":"hide","offset":12,"offset_float":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2018/11/29/nsq-pqueue/">
+
+
+
+
+
+  <title>NSQ中的优先级队列 | 鸡蛋蛋🥚</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">鸡蛋蛋🥚</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br>
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-booklist">
+          <a href="/booklist/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-book"></i> <br>
+            
+            书单
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br>
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2018/11/29/nsq-pqueue/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="LiMingji">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="鸡蛋蛋🥚">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">NSQ中的优先级队列</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-11-29T22:59:32+08:00">
+                2018-11-29
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/11/29/nsq-pqueue/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2018/11/29/nsq-pqueue/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>在NSQ中，有两个最小堆实现的优先级队列，分别为: PriorityQueue，inFlightPqueue。分别用作延迟消息和消息的at least once机制。</p>
+<h3 id="堆排序-以大顶堆为例"><a href="#堆排序-以大顶堆为例" class="headerlink" title="堆排序(以大顶堆为例)"></a>堆排序(以大顶堆为例)</h3><p>堆排序的基本操作:</p>
+<ul>
+<li>MAX-HEAPIFY ： 运行时间为O(logn)，是保持最大堆性质的关键。</li>
+<li>BUILD-MAX-HEAP：以线性时间运行，可以在无序的输入数组基础上构造出大顶堆。</li>
+<li>HEAP-SORT：运行时间为O(nlogn)，对一个数组原地进行排序。</li>
+<li>MAX-HEAP-INSER，HEAP-INCREASE-KEY, 运行时间均为O(logn)，可以让堆结构作为优先队列使用。</li>
+</ul>
+<h4 id="MAX-HEAPIFY"><a href="#MAX-HEAPIFY" class="headerlink" title="MAX-HEAPIFY"></a>MAX-HEAPIFY</h4><p>堆调整是一个自顶向下的过程。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">MAX-HEAPIFY(A, i)</span><br><span class="line">  l = LEFT(i)</span><br><span class="line">  r = RIGHT(I)</span><br><span class="line">  <span class="keyword">if</span> l &lt;= heap-size[A] and A[l] &gt; A[i]</span><br><span class="line">    then largest = l</span><br><span class="line">    <span class="keyword">else</span> largest = i</span><br><span class="line">  <span class="keyword">if</span> r &lt;= heap-size[A] AND A[r] &gt; A[largest]</span><br><span class="line">    then largest = r</span><br><span class="line">  <span class="keyword">if</span> largest != i</span><br><span class="line">    then exchange A[i], A[largest]</span><br><span class="line">      MAX-HEAPIFY(A, largest)</span><br></pre></td></tr></table></figure>
+<h4 id="BUILD-MAX-HEAP"><a href="#BUILD-MAX-HEAP" class="headerlink" title="BUILD-MAX-HEAP"></a>BUILD-MAX-HEAP</h4><p>建立一个堆，是一个自底向上的过程。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">BUILD-MAX-HEAP</span><br><span class="line">  heap-size[A] = length[A]</span><br><span class="line">  <span class="keyword">for</span> i = length[A] / <span class="number">2</span> downto <span class="number">1</span></span><br><span class="line">    do MAX-HEAPIFY(A, i)</span><br></pre></td></tr></table></figure>
+<h4 id="HEAP-SORT"><a href="#HEAP-SORT" class="headerlink" title="HEAP-SORT"></a>HEAP-SORT</h4><p>最开始利用BUILD-MAX-HEAP将输入数组构造成一个大顶堆。每次将根节点与A[n]互换来达到最终正确的位置。同时缩小堆的大小。<br>新的根元素可能违背了最大堆的性质，这时通过MAX-HEAPIFY来进行调整，保持这一性质。不断重复此过程，直到堆的大小降到2。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">HEAP-SORT(A)</span><br><span class="line">  BUILD-MAX-HEAP(A)</span><br><span class="line">  <span class="keyword">for</span> i = length[A] downto <span class="number">2</span></span><br><span class="line">    do exchange A[<span class="number">1</span>], A[i]</span><br><span class="line">      heap-size[A] = heap-size[A] - <span class="number">1</span></span><br><span class="line">      MAX-HEAPIFY(A, <span class="number">1</span>)</span><br></pre></td></tr></table></figure>
+<h4 id="HEAP-INCREASE-KEY"><a href="#HEAP-INCREASE-KEY" class="headerlink" title="HEAP-INCREASE-KEY"></a>HEAP-INCREASE-KEY</h4><p>首先将i位置的元素更新为key。由于A[i]的增大可能会违反最大堆的性质。所以在过程中采用了向上调整的方法。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">HEAP-INCREASE-KEY (A, i, key)</span><br><span class="line">  <span class="keyword">if</span> key &lt; A[i]</span><br><span class="line">    then error <span class="string">"new key is smaller than curent key"</span></span><br><span class="line">  A[i] = key</span><br><span class="line">  while i &gt; <span class="number">1</span> and A[PARENT(i)] &lt; A[i]</span><br><span class="line">    do exchange A[i], A[PARENT(i)]</span><br><span class="line">      i = PARENT(i)</span><br></pre></td></tr></table></figure>
+<h4 id="MAX-HEAP-INSERT"><a href="#MAX-HEAP-INSERT" class="headerlink" title="MAX-HEAP-INSERT"></a>MAX-HEAP-INSERT</h4><p>向堆中插入元素。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">MAX-HEAP-INSERT(A, key)</span><br><span class="line">  heap-size[A] = heap-size[A]+<span class="number">1</span></span><br><span class="line">  A[heap-size[A]] = -∞</span><br><span class="line">  HEAP-INCREASE-KEY(A, heap-size[A], key)</span><br></pre></td></tr></table></figure>
+<h3 id="InFlightPqueue源码解析"><a href="#InFlightPqueue源码解析" class="headerlink" title="InFlightPqueue源码解析"></a>InFlightPqueue源码解析</h3><p>可以将下面源码和上面堆排序的基本操作结合起来看。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">type</span> inFlightPqueue []*Message</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">newInFlightPqueue</span><span class="params">(capacity <span class="keyword">int</span>)</span> <span class="title">inFlightPqueue</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="built_in">make</span>(inFlightPqueue, <span class="number">0</span>, capacity)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 交换两个元素的位置</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(pq inFlightPqueue)</span> <span class="title">Swap</span><span class="params">(i, j <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">	pq[i], pq[j] = pq[j], pq[i]</span><br><span class="line">	pq[i].index = i</span><br><span class="line">	pq[j].index = j</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 向Queue中添加元素</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(pq *inFlightPqueue)</span> <span class="title">Push</span><span class="params">(x *Message)</span></span> &#123;</span><br><span class="line">	n := <span class="built_in">len</span>(*pq)</span><br><span class="line">	c := <span class="built_in">cap</span>(*pq)</span><br><span class="line">	<span class="comment">// 当前容量+1超过cap的时候，会进行扩容，</span></span><br><span class="line">	<span class="comment">// 这里扩容扩的是cap，不是length</span></span><br><span class="line">	<span class="keyword">if</span> n+<span class="number">1</span> &gt; c &#123;</span><br><span class="line">		npq := <span class="built_in">make</span>(inFlightPqueue, n, c*<span class="number">2</span>)</span><br><span class="line">		<span class="built_in">copy</span>(npq, *pq)</span><br><span class="line">		*pq = npq</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 把length的指针向右移动一位，扩充一个空白元素用来填充x</span></span><br><span class="line">	*pq = (*pq)[<span class="number">0</span> : n+<span class="number">1</span>]</span><br><span class="line">	x.index = n</span><br><span class="line">	<span class="comment">// 把x放入到队列的末尾</span></span><br><span class="line">	(*pq)[n] = x</span><br><span class="line">	<span class="comment">// 进行一次堆调整</span></span><br><span class="line">	pq.up(n)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 弹出堆顶元素</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(pq *inFlightPqueue)</span> <span class="title">Pop</span><span class="params">()</span> *<span class="title">Message</span></span> &#123;</span><br><span class="line">	n := <span class="built_in">len</span>(*pq)</span><br><span class="line">	c := <span class="built_in">cap</span>(*pq)</span><br><span class="line">	<span class="comment">// 将堆顶元素和末端元素进行交换</span></span><br><span class="line">	pq.Swap(<span class="number">0</span>, n<span class="number">-1</span>)</span><br><span class="line">	<span class="comment">// 进行一次向下调整</span></span><br><span class="line">	pq.down(<span class="number">0</span>, n<span class="number">-1</span>)</span><br><span class="line">	<span class="comment">// 当符合条件时进行缩容</span></span><br><span class="line">	<span class="keyword">if</span> n &lt; (c/<span class="number">2</span>) &amp;&amp; c &gt; <span class="number">25</span> &#123;</span><br><span class="line">		npq := <span class="built_in">make</span>(inFlightPqueue, n, c/<span class="number">2</span>)</span><br><span class="line">		<span class="built_in">copy</span>(npq, *pq)</span><br><span class="line">		*pq = npq</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 获取末尾元素，并删除末尾元素</span></span><br><span class="line">	x := (*pq)[n<span class="number">-1</span>]</span><br><span class="line">	x.index = <span class="number">-1</span></span><br><span class="line">	*pq = (*pq)[<span class="number">0</span> : n<span class="number">-1</span>]</span><br><span class="line">	<span class="keyword">return</span> x</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 移除i位置的节点</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(pq *inFlightPqueue)</span> <span class="title">Remove</span><span class="params">(i <span class="keyword">int</span>)</span> *<span class="title">Message</span></span> &#123;</span><br><span class="line">	n := <span class="built_in">len</span>(*pq)</span><br><span class="line">	<span class="comment">// 若要移除的元素是最后一个，则直接移除就好了</span></span><br><span class="line">	<span class="keyword">if</span> n<span class="number">-1</span> != i &#123;</span><br><span class="line">		<span class="comment">// 把最后一个元素和要移除的元素进行交换</span></span><br><span class="line">		pq.Swap(i, n<span class="number">-1</span>)</span><br><span class="line">		<span class="comment">// 进行一次向下堆调整</span></span><br><span class="line">		pq.down(i, n<span class="number">-1</span>)</span><br><span class="line">		<span class="comment">// 进行一次向上堆调整</span></span><br><span class="line">		pq.up(i)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 移除最后一个元素，将移除的元素返回</span></span><br><span class="line">	x := (*pq)[n<span class="number">-1</span>]</span><br><span class="line">	x.index = <span class="number">-1</span></span><br><span class="line">	*pq = (*pq)[<span class="number">0</span> : n<span class="number">-1</span>]</span><br><span class="line">	<span class="keyword">return</span> x</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 如果堆顶元素大于max，则返回nil和堆顶元素与max之间的差值</span></span><br><span class="line"><span class="comment">// 如果堆顶元素小于max，则返回堆顶元素，并将堆顶元素删除。</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(pq *inFlightPqueue)</span> <span class="title">PeekAndShift</span><span class="params">(max <span class="keyword">int64</span>)</span> <span class="params">(*Message, <span class="keyword">int64</span>)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(*pq) == <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, <span class="number">0</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 取出堆顶元素</span></span><br><span class="line">	x := (*pq)[<span class="number">0</span>]</span><br><span class="line">	<span class="comment">// 若堆顶元素大于max，则return nil，并返回和max的差值</span></span><br><span class="line">	<span class="keyword">if</span> x.pri &gt; max &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, x.pri - max</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 移除堆顶元素</span></span><br><span class="line">	pq.Pop()</span><br><span class="line">	<span class="comment">// 将x返回</span></span><br><span class="line">	<span class="keyword">return</span> x, <span class="number">0</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 进行一次向上堆调整</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(pq *inFlightPqueue)</span> <span class="title">up</span><span class="params">(j <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		<span class="comment">// 获取父节点的位置</span></span><br><span class="line">		i := (j - <span class="number">1</span>) / <span class="number">2</span> <span class="comment">// parent</span></span><br><span class="line">		<span class="keyword">if</span> i == j || (*pq)[j].pri &gt;= (*pq)[i].pri &#123;</span><br><span class="line">			<span class="keyword">break</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// 若j位置节点的值小于父节点的值，则进行交换</span></span><br><span class="line">		pq.Swap(i, j)</span><br><span class="line">		<span class="comment">// 继续调整</span></span><br><span class="line">		j = i</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 进行一次向下堆调整</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(pq *inFlightPqueue)</span> <span class="title">down</span><span class="params">(i, n <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		<span class="comment">// 找到i的左孩子</span></span><br><span class="line">		j1 := <span class="number">2</span>*i + <span class="number">1</span></span><br><span class="line">		<span class="comment">// 若超过堆的大小或溢出，则直接退出</span></span><br><span class="line">		<span class="keyword">if</span> j1 &gt;= n || j1 &lt; <span class="number">0</span> &#123; <span class="comment">// j1 &lt; 0 after int overflow</span></span><br><span class="line">			<span class="keyword">break</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// 把当前节点和自己的两个孩子作比较，若自己的值大于任意孩子的值，把自己和值较小的孩子交换位置。</span></span><br><span class="line">		j := j1 <span class="comment">// left child</span></span><br><span class="line">		<span class="keyword">if</span> j2 := j1 + <span class="number">1</span>; j2 &lt; n &amp;&amp; (*pq)[j1].pri &gt;= (*pq)[j2].pri &#123;</span><br><span class="line">			j = j2 <span class="comment">// = 2*i + 2  // right child</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> (*pq)[j].pri &gt;= (*pq)[i].pri &#123;</span><br><span class="line">			<span class="keyword">break</span></span><br><span class="line">		&#125;</span><br><span class="line">		pq.Swap(i, j)</span><br><span class="line">		i = j</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="reference"><a href="#reference" class="headerlink" title="reference"></a>reference</h4><ul>
+<li>inFlightPqueue <a href="https://github.com/nsqio/nsq/blob/master/nsqd/in_flight_pqueue.go" target="_blank" rel="noopener">https://github.com/nsqio/nsq/blob/master/nsqd/in_flight_pqueue.go</a></li>
+<li>pqueue <a href="https://github.com/nsqio/nsq/tree/master/internal/pqueue/pqueue.go" target="_blank" rel="noopener">https://github.com/nsqio/nsq/tree/master/internal/pqueue/pqueue.go</a></li>
+</ul>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/NSQ/" rel="tag"># NSQ</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/11/27/nsq-disk-queue/" rel="next" title="disk queue 源码分析">
+                <i class="fa fa-chevron-left"></i> disk queue 源码分析
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/12/10/nsq-message-in-flight/" rel="prev" title="NSQ消息Inflight机制">
+                NSQ消息Inflight机制 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image" src="/images/avatar.gif" alt="LiMingji">
+          <p class="site-author-name" itemprop="name">LiMingji</p>
+           
+              <p class="site-description motion-element" itemprop="description"></p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives/">
+                <span class="site-state-item-count">42</span>
+                <span class="site-state-item-name">日志</span>
+              </a>
+            </div>
+          
+
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">26</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#堆排序-以大顶堆为例"><span class="nav-number">1.</span> <span class="nav-text">堆排序(以大顶堆为例)</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#MAX-HEAPIFY"><span class="nav-number">1.1.</span> <span class="nav-text">MAX-HEAPIFY</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#BUILD-MAX-HEAP"><span class="nav-number">1.2.</span> <span class="nav-text">BUILD-MAX-HEAP</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#HEAP-SORT"><span class="nav-number">1.3.</span> <span class="nav-text">HEAP-SORT</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#HEAP-INCREASE-KEY"><span class="nav-number">1.4.</span> <span class="nav-text">HEAP-INCREASE-KEY</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#MAX-HEAP-INSERT"><span class="nav-number">1.5.</span> <span class="nav-text">MAX-HEAP-INSERT</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#InFlightPqueue源码解析"><span class="nav-number">2.</span> <span class="nav-text">InFlightPqueue源码解析</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#reference"><span class="nav-number">2.1.</span> <span class="nav-text">reference</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">LiMingji</span>
+</div>
+
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+        
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.2"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://swanspouse.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'http://yoursite.com/2018/11/29/nsq-pqueue/';
+          this.page.identifier = '2018/11/29/nsq-pqueue/';
+          this.page.title = 'NSQ中的优先级队列';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://swanspouse.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

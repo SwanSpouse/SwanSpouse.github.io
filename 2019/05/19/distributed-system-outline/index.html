@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.2" rel="stylesheet" type="text/css">
+
+
+  <meta name="keywords" content="distributed system,">
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.2">
+
+
+
+
+
+
+<meta name="description" content="分布式系统这里主要对分布式系统的定义、应用甚至意义来做一些阐述。有一个统揽全局的概念。 应用：分布式操作系统，分布式文件系统，分布式存储系统(分布式数据库、缓存、消息队列等)。 这里主要是针对分布式存储系统来展开。 分布式系统的理论基础基本概念基本概念：状态特征：无状态、系统重发、幂等性、 并行、并发，事件顺序，逻辑时钟和物理时钟。 进程、线程、协程、 锁：CAS MVCC 锁这里还可以进行展开。">
+<meta name="keywords" content="distributed system">
+<meta property="og:type" content="article">
+<meta property="og:title" content="分布式系统route map">
+<meta property="og:url" content="http://yoursite.com/2019/05/19/distributed-system-outline/index.html">
+<meta property="og:site_name" content="鸡蛋蛋🥚">
+<meta property="og:description" content="分布式系统这里主要对分布式系统的定义、应用甚至意义来做一些阐述。有一个统揽全局的概念。 应用：分布式操作系统，分布式文件系统，分布式存储系统(分布式数据库、缓存、消息队列等)。 这里主要是针对分布式存储系统来展开。 分布式系统的理论基础基本概念基本概念：状态特征：无状态、系统重发、幂等性、 并行、并发，事件顺序，逻辑时钟和物理时钟。 进程、线程、协程、 锁：CAS MVCC 锁这里还可以进行展开。">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2019-05-19T02:32:11.948Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="分布式系统route map">
+<meta name="twitter:description" content="分布式系统这里主要对分布式系统的定义、应用甚至意义来做一些阐述。有一个统揽全局的概念。 应用：分布式操作系统，分布式文件系统，分布式存储系统(分布式数据库、缓存、消息队列等)。 这里主要是针对分布式存储系统来展开。 分布式系统的理论基础基本概念基本概念：状态特征：无状态、系统重发、幂等性、 并行、并发，事件顺序，逻辑时钟和物理时钟。 进程、线程、协程、 锁：CAS MVCC 锁这里还可以进行展开。">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"left","display":"hide","offset":12,"offset_float":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2019/05/19/distributed-system-outline/">
+
+
+
+
+
+  <title>分布式系统route map | 鸡蛋蛋🥚</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">鸡蛋蛋🥚</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br>
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-booklist">
+          <a href="/booklist/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-book"></i> <br>
+            
+            书单
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br>
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/05/19/distributed-system-outline/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="LiMingji">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="鸡蛋蛋🥚">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">分布式系统route map</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-05-19T10:32:11+08:00">
+                2019-05-19
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/05/19/distributed-system-outline/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2019/05/19/distributed-system-outline/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="分布式系统"><a href="#分布式系统" class="headerlink" title="分布式系统"></a>分布式系统</h2><p>这里主要对分布式系统的定义、应用甚至意义来做一些阐述。有一个统揽全局的概念。</p>
+<p>应用：分布式操作系统，分布式文件系统，分布式存储系统(分布式数据库、缓存、消息队列等)。</p>
+<p>这里主要是针对分布式存储系统来展开。</p>
+<h3 id="分布式系统的理论基础"><a href="#分布式系统的理论基础" class="headerlink" title="分布式系统的理论基础"></a>分布式系统的理论基础</h3><h4 id="基本概念"><a href="#基本概念" class="headerlink" title="基本概念"></a>基本概念</h4><p>基本概念：状态特征：无状态、系统重发、幂等性、 并行、并发，事件顺序，逻辑时钟和物理时钟。</p>
+<p>进程、线程、协程、</p>
+<p>锁：CAS MVCC 锁这里还可以进行展开。比如把信号量那些操作系统相关的部分放在这里。分离锁、分拆锁、避免共享变量缓存，使用并发容器Amino</p>
+<p>硬件异常：网络异常、磁盘故障、机房级异常</p>
+<p><a href="https://swanspouse.github.io/2018/10/23/byzantine-generals-problem/" target="_blank" rel="noopener">拜占庭将军问题：拜占庭将军问题是分布式领域最复杂、最严格的容错模型。</a></p>
+<h4 id="分布式系统的重要理论"><a href="#分布式系统的重要理论" class="headerlink" title="分布式系统的重要理论"></a>分布式系统的重要理论</h4><p>原子性、一致性、隔离性、持久性</p>
+<p>基本可用、软状态、最终一致性</p>
+<p>一致性、可用性、分区容忍性</p>
+<p>ACID BASE CAP 各自阐述了什么样的问题。以及上面这些性质的解读。</p>
+<p>CAP ：一致性、可用性、分区容忍性的取舍问题；</p>
+<h3 id="针对分布式系统性质的一些解决方案"><a href="#针对分布式系统性质的一些解决方案" class="headerlink" title="针对分布式系统性质的一些解决方案"></a>针对分布式系统性质的一些解决方案</h3><p>数据分片、数据复本</p>
+<p>几种分片方法，分片所导致的问题，以及解决办法。</p>
+<p>备份，几种备份方式，以及备份方式所能带来的问题。</p>
+<p>高可用：主备模式、互备模式、集群模式</p>
+<p>可靠性： 一致性；一致性又可以分为好多种一致性。什么最终一致性，会话一致性等等。错误恢复；可靠通信。</p>
+<p>元数据管理。ETCD 这个单独列出来吧。</p>
+<p>分布式通信: 进程通信方式、举例 一对一通信，组(collective)通信</p>
+<p>分布式操作系统： 互斥和选举，死锁的检测和解决方法。自稳定，任务调度和负载均衡。</p>
+<p>Paxos Raft zab 2PC 3PC分别给出了一致性的解决方案。</p>
+<p>Lease机制主要针对网络拥塞或者瞬断的情况下，出现双柱情况的解法，</p>
+<p>Quorum NWR 和 MVCC 主要解决分布式存储领域的一致性问题。</p>
+<p>Gossip是一种去中心化，容错而又最终一致性的算法。</p>
+<p>分布式数据管理：复制数据的一致性。分布式并发控制。</p>
+<p>WAL Write ahead log 用来保证数据最终一致性。</p>
+<p><a href="https://swanspouse.github.io/2019/01/28/LSM-Tree//" target="_blank" rel="noopener">LSM log structured merge 用来提升系统的读写效率。将随机写转换为顺序写。</a></p>
+<p><a href="https://swanspouse.github.io/2019/01/28/distributed-lock/" target="_blank" rel="noopener">分布式锁</a></p>
+<p>分布式事务，事务又牵扯到一致性问题了。其实事务就是一致性。</p>
+<h4 id="分布式系统数据质量、监控"><a href="#分布式系统数据质量、监控" class="headerlink" title="分布式系统数据质量、监控"></a>分布式系统数据质量、监控</h4><h4 id="分布式系统的运维问题"><a href="#分布式系统的运维问题" class="headerlink" title="分布式系统的运维问题"></a>分布式系统的运维问题</h4><h3 id="TODO-消息队列应该归为哪一类呢？"><a href="#TODO-消息队列应该归为哪一类呢？" class="headerlink" title="TODO 消息队列应该归为哪一类呢？"></a>TODO 消息队列应该归为哪一类呢？</h3><p><a href="https://swanspouse.github.io/2019/01/23/kafka/" target="_blank" rel="noopener">Kafka</a></p>
+<p><a href="https://swanspouse.github.io/tags/redis/" target="_blank" rel="noopener">Redis</a></p>
+<p><a href="https://swanspouse.github.io/tags/NSQ/" target="_blank" rel="noopener">NSQ</a></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/distributed-system/" rel="tag"># distributed system</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/05/19/distributed-lock-based-on-redis-cluster/" rel="next" title="基于Redis集群的分布式锁">
+                <i class="fa fa-chevron-left"></i> 基于Redis集群的分布式锁
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/05/19/mysql-lock/" rel="prev" title="Mysql锁">
+                Mysql锁 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image" src="/images/avatar.gif" alt="LiMingji">
+          <p class="site-author-name" itemprop="name">LiMingji</p>
+           
+              <p class="site-description motion-element" itemprop="description"></p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives/">
+                <span class="site-state-item-count">42</span>
+                <span class="site-state-item-name">日志</span>
+              </a>
+            </div>
+          
+
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">26</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#分布式系统"><span class="nav-number">1.</span> <span class="nav-text">分布式系统</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#分布式系统的理论基础"><span class="nav-number">1.1.</span> <span class="nav-text">分布式系统的理论基础</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#基本概念"><span class="nav-number">1.1.1.</span> <span class="nav-text">基本概念</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#分布式系统的重要理论"><span class="nav-number">1.1.2.</span> <span class="nav-text">分布式系统的重要理论</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#针对分布式系统性质的一些解决方案"><span class="nav-number">1.2.</span> <span class="nav-text">针对分布式系统性质的一些解决方案</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#分布式系统数据质量、监控"><span class="nav-number">1.2.1.</span> <span class="nav-text">分布式系统数据质量、监控</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#分布式系统的运维问题"><span class="nav-number">1.2.2.</span> <span class="nav-text">分布式系统的运维问题</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#TODO-消息队列应该归为哪一类呢？"><span class="nav-number">1.3.</span> <span class="nav-text">TODO 消息队列应该归为哪一类呢？</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">LiMingji</span>
+</div>
+
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+        
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.2"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://swanspouse.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'http://yoursite.com/2019/05/19/distributed-system-outline/';
+          this.page.identifier = '2019/05/19/distributed-system-outline/';
+          this.page.title = '分布式系统route map';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://swanspouse.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

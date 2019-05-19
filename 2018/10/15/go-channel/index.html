@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.2" rel="stylesheet" type="text/css">
+
+
+  <meta name="keywords" content="go,">
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.2">
+
+
+
+
+
+
+<meta name="description" content="概述channel是goroutine之间的通信机制，同时，channel也是实现复杂高并发程序的基础。在这里会对channel内部的工作机制，包括channel如何被调度器调度、内存管理系统等进行深入的说明。 我们可以用channel实现一个简单的任务队列。  channel 具有如下特性:  channel 是goroutine安全的。 channel 可以在goroutine 之间传递消息。">
+<meta name="keywords" content="go">
+<meta property="og:type" content="article">
+<meta property="og:title" content="深入理解 go channel">
+<meta property="og:url" content="http://yoursite.com/2018/10/15/go-channel/index.html">
+<meta property="og:site_name" content="鸡蛋蛋🥚">
+<meta property="og:description" content="概述channel是goroutine之间的通信机制，同时，channel也是实现复杂高并发程序的基础。在这里会对channel内部的工作机制，包括channel如何被调度器调度、内存管理系统等进行深入的说明。 我们可以用channel实现一个简单的任务队列。  channel 具有如下特性:  channel 是goroutine安全的。 channel 可以在goroutine 之间传递消息。">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:image" content="https://s1.ax1x.com/2018/10/15/ialATe.png">
+<meta property="og:image" content="https://s1.ax1x.com/2018/10/15/ialdXV.png">
+<meta property="og:image" content="https://s1.ax1x.com/2018/10/15/ial0mT.png">
+<meta property="og:image" content="https://s1.ax1x.com/2018/10/15/ialjnf.png">
+<meta property="og:image" content="https://s1.ax1x.com/2018/10/15/ia1SAg.png">
+<meta property="og:image" content="https://s1.ax1x.com/2018/10/15/ia1i3n.png">
+<meta property="og:updated_time" content="2019-05-19T02:32:11.948Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="深入理解 go channel">
+<meta name="twitter:description" content="概述channel是goroutine之间的通信机制，同时，channel也是实现复杂高并发程序的基础。在这里会对channel内部的工作机制，包括channel如何被调度器调度、内存管理系统等进行深入的说明。 我们可以用channel实现一个简单的任务队列。  channel 具有如下特性:  channel 是goroutine安全的。 channel 可以在goroutine 之间传递消息。">
+<meta name="twitter:image" content="https://s1.ax1x.com/2018/10/15/ialATe.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"left","display":"hide","offset":12,"offset_float":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2018/10/15/go-channel/">
+
+
+
+
+
+  <title>深入理解 go channel | 鸡蛋蛋🥚</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">鸡蛋蛋🥚</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br>
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-booklist">
+          <a href="/booklist/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-book"></i> <br>
+            
+            书单
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br>
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2018/10/15/go-channel/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="LiMingji">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="鸡蛋蛋🥚">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">深入理解 go channel</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-10-15T23:39:26+08:00">
+                2018-10-15
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/10/15/go-channel/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2018/10/15/go-channel/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h3 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h3><p>channel是goroutine之间的通信机制，同时，channel也是实现复杂高并发程序的基础。在这里会对channel内部的工作机制，包括channel如何被调度器调度、内存管理系统等进行深入的说明。</p>
+<p>我们可以用channel实现一个简单的任务队列。</p>
+<p><img src="https://s1.ax1x.com/2018/10/15/ialATe.png" alt="task_queue"></p>
+<p>channel 具有如下特性:</p>
+<ul>
+<li>channel 是goroutine安全的。</li>
+<li>channel 可以在goroutine 之间传递消息。</li>
+<li>遵循FIFO语法</li>
+<li>channel 可以是阻塞或者非阻塞的。</li>
+</ul>
+<h3 id="创建-channel"><a href="#创建-channel" class="headerlink" title="创建 channel"></a>创建 channel</h3><p>在使用之前首先要创建一个channel，make可以创建带缓冲区或者不带缓冲区的channel。这里主要讨论的是带有缓冲区的channel。</p>
+<p>创建一个缓冲区容量为3的channel，ch := make(chan Task, 3)</p>
+<ul>
+<li>这个channel是goroutine安全的。</li>
+<li>存储到channel中的数据是遵循FIFO的。</li>
+<li>可以在goroutine之间传输消息。</li>
+<li>能够使goroutine阻塞或者非阻塞。</li>
+</ul>
+<p><img src="https://s1.ax1x.com/2018/10/15/ialdXV.png" alt="making channels"></p>
+<p>make chan 在堆内存上创建了一个hchan结构，返回指向它的指针。这使得我们可以在方法之间传递channel。</p>
+<h4 id="使用-channel"><a href="#使用-channel" class="headerlink" title="使用 channel"></a>使用 channel</h4><p><img src="https://s1.ax1x.com/2018/10/15/ial0mT.png" alt="using channel"></p>
+<p>channel是怎样发送和接收消息的？</p>
+<ul>
+<li>G1发送任务，G2接收并执行任务。</li>
+<li>首先，G1向channel中发送任务，将任务写入队列的这个过程是需要锁的。入队的值实际上是原值的一个拷贝。</li>
+<li>接着，G2做相反的工作：将任务出队。这个过程也是需要锁的，同样的，出队的值实际上也是原值的一个拷贝。</li>
+<li>每次操作时，操作的都是值的拷贝保证了goroutine安全，操作的过程channel是加锁的保证了互斥。</li>
+</ul>
+<p>channel的阻塞和非阻塞是怎样工作的？</p>
+<p>假设G1不停的向channel中发送任务，同时G2处理任务需要花费一些时间。当channel满了的时候，G1就会暂停执行。G1是怎么暂停的呢?</p>
+<p>它是由runtime 调度器来实现的。</p>
+<p>Goroutine 是Go runtime创建和管理的用户级别线程，而不是由系统来管理的。这些线程和系统线程相比更加轻量级。</p>
+<p>Go语言调度器是一个M：N的调度器，将少部分系统线程映射到N个goroutine上，调度器的任务就是调度goroutine，让其运行在少数的系统线程上。</p>
+<h4 id="暂停-goroutine"><a href="#暂停-goroutine" class="headerlink" title="暂停 goroutine"></a>暂停 goroutine</h4><p><img src="https://s1.ax1x.com/2018/10/15/ialjnf.png" alt="pausing goroutine"></p>
+<p>当goroutine需要暂停的时候，调度器在接收到chan的通知后，将G1从running状态置为waiting状态，同时调度其它goroutine使用空出来的系统线程。</p>
+<p>这个做法非常好，因为我们并没有停止系统线程的运行，只是通过上下文切换的方式更换了正在运行的goroutine，这个操作的代价很小。</p>
+<p>当channel又有存储空间的时候，我们需要将这个goroutine从暂停的状态上恢复回来。</p>
+<h4 id="恢复-goroutine"><a href="#恢复-goroutine" class="headerlink" title="恢复 goroutine"></a>恢复 goroutine</h4><p><img src="https://s1.ax1x.com/2018/10/15/ia1SAg.png" alt="resuming goroutine"></p>
+<p>处于等待状态的goroutine结构中有一个指针，指向它正在等待的元素？</p>
+<p>G1自己创建了一个sudog，将它放入到channel的等待队列中，用于在以后恢复G1的运行。</p>
+<p>当channel又存在存储空间的时候，G2需要将sudog出队，这时G1又会被恢复运行。runtime 调度器再一次调度G1，恢复G1的运行。(这也解释了G2被暂停和恢复的原因。)</p>
+<h4 id="直接发送"><a href="#直接发送" class="headerlink" title="直接发送"></a>直接发送</h4><p><img src="https://s1.ax1x.com/2018/10/15/ia1i3n.png" alt="direct send"></p>
+<p>当G1真正运行的时候，它首先要获取锁，但是runtime 更加机智，在此做了优化。runtime可以直接将值拷贝到接收者的栈内存。 G1直接写G2的栈内存，这个过程并不需要锁；G2在读取的时候也不再需要channel锁而直接去操作缓存，这样节省了值拷贝的内存空间。</p>
+<h3 id="reference"><a href="#reference" class="headerlink" title="reference"></a>reference</h3><ul>
+<li><a href="https://about.sourcegraph.com/go/understanding-channels-kavya-joshi/" target="_blank" rel="noopener">https://about.sourcegraph.com/go/understanding-channels-kavya-joshi/</a></li>
+</ul>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/go/" rel="tag"># go</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/10/14/grpc/" rel="next" title="go grpc 样例">
+                <i class="fa fa-chevron-left"></i> go grpc 样例
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/10/23/byzantine-generals-problem/" rel="prev" title="拜占庭将军问题">
+                拜占庭将军问题 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image" src="/images/avatar.gif" alt="LiMingji">
+          <p class="site-author-name" itemprop="name">LiMingji</p>
+           
+              <p class="site-description motion-element" itemprop="description"></p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives/">
+                <span class="site-state-item-count">42</span>
+                <span class="site-state-item-name">日志</span>
+              </a>
+            </div>
+          
+
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">26</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#概述"><span class="nav-number">1.</span> <span class="nav-text">概述</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#创建-channel"><span class="nav-number">2.</span> <span class="nav-text">创建 channel</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#使用-channel"><span class="nav-number">2.1.</span> <span class="nav-text">使用 channel</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#暂停-goroutine"><span class="nav-number">2.2.</span> <span class="nav-text">暂停 goroutine</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#恢复-goroutine"><span class="nav-number">2.3.</span> <span class="nav-text">恢复 goroutine</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#直接发送"><span class="nav-number">2.4.</span> <span class="nav-text">直接发送</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#reference"><span class="nav-number">3.</span> <span class="nav-text">reference</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">LiMingji</span>
+</div>
+
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+        
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.2"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://swanspouse.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'http://yoursite.com/2018/10/15/go-channel/';
+          this.page.identifier = '2018/10/15/go-channel/';
+          this.page.title = '深入理解 go channel';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://swanspouse.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.2" rel="stylesheet" type="text/css">
+
+
+  <meta name="keywords" content="business-logic,">
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.2">
+
+
+
+
+
+
+<meta name="description" content="现在大多数APP和后端都是使用http、https来进行交互的。在这里对开放式API接口如何对数据安全进行保证进行简单的梳理和说明。 常见的开放性API接口的安全性问题：请求来源是否合安全(对身份进行验证)。请求参数是否被篡改。请求的唯一性(不可复制性)如何进行保证。 不验证的方式APP请求后台接口，向后台发送请求：http://api.test.com/getproducts?param2=va">
+<meta name="keywords" content="business-logic">
+<meta property="og:type" content="article">
+<meta property="og:title" content="url参数的Sign签名">
+<meta property="og:url" content="http://yoursite.com/2018/08/20/url-sign/index.html">
+<meta property="og:site_name" content="鸡蛋蛋🥚">
+<meta property="og:description" content="现在大多数APP和后端都是使用http、https来进行交互的。在这里对开放式API接口如何对数据安全进行保证进行简单的梳理和说明。 常见的开放性API接口的安全性问题：请求来源是否合安全(对身份进行验证)。请求参数是否被篡改。请求的唯一性(不可复制性)如何进行保证。 不验证的方式APP请求后台接口，向后台发送请求：http://api.test.com/getproducts?param2=va">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2019-05-19T02:32:11.957Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="url参数的Sign签名">
+<meta name="twitter:description" content="现在大多数APP和后端都是使用http、https来进行交互的。在这里对开放式API接口如何对数据安全进行保证进行简单的梳理和说明。 常见的开放性API接口的安全性问题：请求来源是否合安全(对身份进行验证)。请求参数是否被篡改。请求的唯一性(不可复制性)如何进行保证。 不验证的方式APP请求后台接口，向后台发送请求：http://api.test.com/getproducts?param2=va">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"left","display":"hide","offset":12,"offset_float":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2018/08/20/url-sign/">
+
+
+
+
+
+  <title>url参数的Sign签名 | 鸡蛋蛋🥚</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">鸡蛋蛋🥚</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br>
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-booklist">
+          <a href="/booklist/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-book"></i> <br>
+            
+            书单
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br>
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2018/08/20/url-sign/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="LiMingji">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="鸡蛋蛋🥚">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">url参数的Sign签名</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-08-20T14:32:12+08:00">
+                2018-08-20
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/08/20/url-sign/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2018/08/20/url-sign/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>现在大多数APP和后端都是使用http、https来进行交互的。在这里对开放式API接口如何对数据安全进行保证进行简单的梳理和说明。</p>
+<h4 id="常见的开放性API接口的安全性问题："><a href="#常见的开放性API接口的安全性问题：" class="headerlink" title="常见的开放性API接口的安全性问题："></a>常见的开放性API接口的安全性问题：</h4><p>请求来源是否合安全(对身份进行验证)。<br>请求参数是否被篡改。<br>请求的唯一性(不可复制性)如何进行保证。</p>
+<h4 id="不验证的方式"><a href="#不验证的方式" class="headerlink" title="不验证的方式"></a>不验证的方式</h4><p>APP请求后台接口，向后台发送请求：<a href="http://api.test.com/getproducts?param2=value2&amp;param1=value1" target="_blank" rel="noopener">http://api.test.com/getproducts?param2=value2&amp;param1=value1</a><br>这种方式简单粗暴且没有任何的验证信息。任何人都可以通过这个接口获取到所有的product信息，导致信息泄露。</p>
+<h4 id="对Url进行签名认证"><a href="#对Url进行签名认证" class="headerlink" title="对Url进行签名认证"></a>对Url进行签名认证</h4><p>首先对上述请求加入签名验证。</p>
+<ul>
+<li>给app分配secret，用来对请求进行加密。</li>
+<li>在发送请求时，app使用secret对请求进行签名认证。</li>
+</ul>
+<p>具体的签名流程：首先，app会对要发送请求的参数按照某种规则来进行排序，例如字典序。上面的参数排序后为param1=value1&amp;param2=value2。然后使用secret对参数进行加密，形成签名。并将签名当做参数拼在请求后面。如：</p>
+<p><a href="http://api.test.com/getproducts?param2=value2&amp;param1=value1&amp;sign=BCC7C71CF93F9CDBDB88671B701D8A3" target="_blank" rel="noopener">http://api.test.com/getproducts?param2=value2&amp;param1=value1&amp;sign=BCC7C71CF93F9CDBDB88671B701D8A3</a></p>
+<p>后台在接收到请求之后，首先会对采用和app同样的方式，将所有参数进行排序，并加密。然后和客户端传过来的签名进行对比，只有通过校验的请求才能正常提供服务。否则则认为是非法请求。</p>
+<p>如果仅仅是这样，还有一个问题就是，一旦你的请求被别人截获了。虽然我无法对参数进行篡改。但是我可以反复使用获取的请求来获取数据。这时就需要对请求的唯一性进行保证。</p>
+<h4 id="请求的唯一性"><a href="#请求的唯一性" class="headerlink" title="请求的唯一性"></a>请求的唯一性</h4><p>在上述的请求中，加入时间戳，同时设定一段的过期时间，例如30s。这样就算是别人可以获取到完整的请求链接，有效期也仅仅是也有限的几十秒。</p>
+<p>因为考虑到当发生错误的时候，我们可以使用用户的请求log对bug进行复现。所以不是要求特别高的特殊系统，不会实现此功能。</p>
+<h4 id="请求的隐私性"><a href="#请求的隐私性" class="headerlink" title="请求的隐私性"></a>请求的隐私性</h4><p>可能还会有人担心明文的传输不够安全，别人还是可以通过url请求看到请求参数的具体内容。如果有一些敏感信息或者关键信息，那么会造成一定的信息泄露。所以在对请求进行签名之后，还会对请求进行一个整体的加密。并在后面附上加密方式的别名。例如上述请求经过加密后变为 <a href="http://api.test.com/getproducts?data=xBASDJFLASDLFJXADFA1234124&amp;en=a1，" target="_blank" rel="noopener">http://api.test.com/getproducts?data=xBASDJFLASDLFJXADFA1234124&amp;en=a1，</a> 请求参数经过加密之后变为data参数的内容，en表示前端进行加密的方式。后台通过en可以得知前端使用的哪种加密方式来进行加密。在请求到达时，首先对data值进行解密，然后再验证签名。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/business-logic/" rel="tag"># business-logic</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/08/20/app-keep-login/" rel="next" title="app 登录保持">
+                <i class="fa fa-chevron-left"></i> app 登录保持
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/08/21/golang-new-object/" rel="prev" title="golang中的new和make">
+                golang中的new和make <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image" src="/images/avatar.gif" alt="LiMingji">
+          <p class="site-author-name" itemprop="name">LiMingji</p>
+           
+              <p class="site-description motion-element" itemprop="description"></p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives/">
+                <span class="site-state-item-count">42</span>
+                <span class="site-state-item-name">日志</span>
+              </a>
+            </div>
+          
+
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">26</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-4"><a class="nav-link" href="#常见的开放性API接口的安全性问题："><span class="nav-number">1.</span> <span class="nav-text">常见的开放性API接口的安全性问题：</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#不验证的方式"><span class="nav-number">2.</span> <span class="nav-text">不验证的方式</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#对Url进行签名认证"><span class="nav-number">3.</span> <span class="nav-text">对Url进行签名认证</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#请求的唯一性"><span class="nav-number">4.</span> <span class="nav-text">请求的唯一性</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#请求的隐私性"><span class="nav-number">5.</span> <span class="nav-text">请求的隐私性</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">LiMingji</span>
+</div>
+
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+        
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.2"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://swanspouse.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'http://yoursite.com/2018/08/20/url-sign/';
+          this.page.identifier = '2018/08/20/url-sign/';
+          this.page.title = 'url参数的Sign签名';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://swanspouse.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

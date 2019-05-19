@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.2" rel="stylesheet" type="text/css">
+
+
+  <meta name="keywords" content="NSQ,">
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.2">
+
+
+
+
+
+
+<meta name="description" content="简介在NSQ中，使用inflight机制来保证NSQ中消息”at least once”(至少被消费一次)。 在消息发送给Client之后，会将消息以及消息的timeout时间存储到优先级队列中pqueue。 如果客户端收到该消息，可以使用如下三个命令对此进行回复：  FIN:   Finish a message，表示成功处理完成。 REQ:   Re-queue a message，表示消息处">
+<meta name="keywords" content="NSQ">
+<meta property="og:type" content="article">
+<meta property="og:title" content="NSQ消息Inflight机制">
+<meta property="og:url" content="http://yoursite.com/2018/12/10/nsq-message-in-flight/index.html">
+<meta property="og:site_name" content="鸡蛋蛋🥚">
+<meta property="og:description" content="简介在NSQ中，使用inflight机制来保证NSQ中消息”at least once”(至少被消费一次)。 在消息发送给Client之后，会将消息以及消息的timeout时间存储到优先级队列中pqueue。 如果客户端收到该消息，可以使用如下三个命令对此进行回复：  FIN:   Finish a message，表示成功处理完成。 REQ:   Re-queue a message，表示消息处">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:image" content="https://s1.ax1x.com/2018/12/03/FK5p8A.png">
+<meta property="og:image" content="https://s1.ax1x.com/2018/12/03/FKIEsx.png">
+<meta property="og:updated_time" content="2019-05-19T02:32:11.954Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="NSQ消息Inflight机制">
+<meta name="twitter:description" content="简介在NSQ中，使用inflight机制来保证NSQ中消息”at least once”(至少被消费一次)。 在消息发送给Client之后，会将消息以及消息的timeout时间存储到优先级队列中pqueue。 如果客户端收到该消息，可以使用如下三个命令对此进行回复：  FIN:   Finish a message，表示成功处理完成。 REQ:   Re-queue a message，表示消息处">
+<meta name="twitter:image" content="https://s1.ax1x.com/2018/12/03/FK5p8A.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"left","display":"hide","offset":12,"offset_float":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2018/12/10/nsq-message-in-flight/">
+
+
+
+
+
+  <title>NSQ消息Inflight机制 | 鸡蛋蛋🥚</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">鸡蛋蛋🥚</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br>
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-booklist">
+          <a href="/booklist/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-book"></i> <br>
+            
+            书单
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br>
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2018/12/10/nsq-message-in-flight/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="LiMingji">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="鸡蛋蛋🥚">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">NSQ消息Inflight机制</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-12-10T14:49:39+08:00">
+                2018-12-10
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/12/10/nsq-message-in-flight/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2018/12/10/nsq-message-in-flight/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h3 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h3><p>在NSQ中，使用inflight机制来保证NSQ中消息”at least once”(至少被消费一次)。</p>
+<p>在消息发送给Client之后，会将消息以及消息的timeout时间存储到优先级队列中<a href="https://swanspouse.github.io/2018/11/29/nsq-pqueue/" target="_blank" rel="noopener">pqueue</a>。</p>
+<p>如果客户端收到该消息，可以使用如下三个命令对此进行回复：</p>
+<ul>
+<li>FIN:   Finish a message，表示成功处理完成。</li>
+<li>REQ:   Re-queue a message，表示消息处理失败，需要重新入队再次进行处理。</li>
+<li>TOUCH: Reset the timeout for an in-flight message，表示需要重置消息的timeout时间。</li>
+</ul>
+<p>如果客户端没有收到消息或是收到消息后没有进行任何的回复，则随着到达消息的超时时间，NSQD会将超时的消息重新入队，再次发送给客户端。</p>
+<p>NSQD只能保证消息的”at least once”，至于消息的”exactly once”则需要业务端配合来实现。例如通过messageID来判断消息是否被消费过。</p>
+<h4 id="NSQ消息Inflight机制流程图"><a href="#NSQ消息Inflight机制流程图" class="headerlink" title="NSQ消息Inflight机制流程图"></a>NSQ消息Inflight机制流程图</h4><p><img src="https://s1.ax1x.com/2018/12/03/FK5p8A.png" alt="nsq-message-inflight"></p>
+<h4 id="相关源码"><a href="#相关源码" class="headerlink" title="相关源码"></a>相关源码</h4><p><img src="https://s1.ax1x.com/2018/12/03/FKIEsx.png" alt="nsqd-queue-scanloop"></p>
+<p>首先在Client在连接NSQD成功时，会向NSQD发送SUB命令，订阅想要消费的Topic和channel。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="comment">// 订阅Topic</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *protocolV2)</span> <span class="title">SUB</span><span class="params">(client *clientV2, params [][]<span class="keyword">byte</span>)</span> <span class="params">([]<span class="keyword">byte</span>, error)</span></span> &#123;</span><br><span class="line"></span><br><span class="line">    ...</span><br><span class="line">    <span class="comment">// 进行参数校验，并获取topicName和channelName</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">var</span> channel *Channel</span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		<span class="comment">// 获取topic 和 channel</span></span><br><span class="line">		topic := p.ctx.nsqd.GetTopic(topicName)</span><br><span class="line">		channel = topic.GetChannel(channelName)</span><br><span class="line">		<span class="comment">// 将Client 添加到 channel 的Client list中</span></span><br><span class="line">		channel.AddClient(client.ID, client)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 更新Client的状态</span></span><br><span class="line">	atomic.StoreInt32(&amp;client.State, stateSubscribed)</span><br><span class="line">	client.Channel = channel</span><br><span class="line">	<span class="comment">// update message pump</span></span><br><span class="line">	<span class="comment">// 把channel塞到SubEventChan中，这样Client就可以不断消费Topic channel下面的消息了。</span></span><br><span class="line">	<span class="comment">// 一旦protocol中的messagePump接收到这个信号之后，就开始不断向Client发送消息了。</span></span><br><span class="line">	client.SubEventChan &lt;- channel</span><br><span class="line">	<span class="comment">// 订阅成功，返回OK</span></span><br><span class="line">	<span class="keyword">return</span> okBytes, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在SubEventChan中收到订阅channel的信息后，messagePump开始不断向Client发送消息。发送之后，在StartInFlightTimeout中将消息写入优先级队列中。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="comment">// 这个函数把Channel下面的消息发送给Client</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *protocolV2)</span> <span class="title">messagePump</span><span class="params">(client *clientV2, startedChan <span class="keyword">chan</span> <span class="keyword">bool</span>)</span></span> &#123;</span><br><span class="line"></span><br><span class="line">    ...</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		<span class="keyword">case</span> subChannel = &lt;-subEventChan:</span><br><span class="line">			<span class="comment">// you can't SUB anymore</span></span><br><span class="line">			<span class="comment">// Client发送SUB命令的时候，subEventChan中会收到Client所订阅的channel</span></span><br><span class="line">			<span class="comment">// 在这里对subChannel赋值，每个Client只能订阅一个Topic，所以这里subEventChan会被置为nil</span></span><br><span class="line">			subEventChan = <span class="literal">nil</span></span><br><span class="line">		<span class="keyword">case</span> b := &lt;-backendMsgChan:</span><br><span class="line">			<span class="comment">// backendMsgChan 收到消息，然后发送给Client</span></span><br><span class="line">			<span class="comment">// 从磁盘中读取出来的消息需要进行解压</span></span><br><span class="line">			msg, err := decodeMessage(b)</span><br><span class="line">			<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">				p.ctx.nsqd.logf(LOG_ERROR, <span class="string">"failed to decode message - %s"</span>, err)</span><br><span class="line">				<span class="keyword">continue</span></span><br><span class="line">			&#125;</span><br><span class="line">			<span class="comment">// 将message尝试发送的次数+1</span></span><br><span class="line">			msg.Attempts++</span><br><span class="line">			<span class="comment">// 把message放入到in-flight队列中，等着客户端确认收到消息，再把消息移除</span></span><br><span class="line">			subChannel.StartInFlightTimeout(msg, client.ID, msgTimeout)</span><br><span class="line">			<span class="comment">// 这个里面没有实际发送消息，只是Client对发送数据的统计信息</span></span><br><span class="line">			client.SendingMessage()</span><br><span class="line">			<span class="comment">// 在这里真正向Client发送消息</span></span><br><span class="line">			err = p.SendMessage(client, msg)</span><br><span class="line">			<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">				<span class="keyword">goto</span> exit</span><br><span class="line">			&#125;</span><br><span class="line">			flushed = <span class="literal">false</span></span><br><span class="line">		<span class="keyword">case</span> msg := &lt;-memoryMsgChan:</span><br><span class="line">			<span class="comment">// memoryMsgChan 收到消息，然后发送给Client</span></span><br><span class="line">			<span class="comment">// 将message尝试发送的次数+1</span></span><br><span class="line">			msg.Attempts++</span><br><span class="line">			<span class="comment">// 把message放入到in-flight队列中，等着客户端确认收到消息，再把消息移除</span></span><br><span class="line">			subChannel.StartInFlightTimeout(msg, client.ID, msgTimeout)</span><br><span class="line">			<span class="comment">// 这个里面没有实际发送消息，只是Client对发送数据的统计信息</span></span><br><span class="line">			client.SendingMessage()</span><br><span class="line">			<span class="comment">// 在这里真正向Client发送消息</span></span><br><span class="line">			err = p.SendMessage(client, msg)</span><br><span class="line">			<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">				<span class="keyword">goto</span> exit</span><br><span class="line">			&#125;</span><br><span class="line">			flushed = <span class="literal">false</span></span><br><span class="line">		<span class="keyword">case</span> &lt;-client.ExitChan:</span><br><span class="line">			<span class="keyword">goto</span> exit</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">    ...</span><br></pre></td></tr></table></figure>
+<p>如果NSQD收到了来自客户端的FIN命令，会把消息从inflight队列中删除。</p>
+<p>如果NSQD收到了来自客户端的REQ命令，会把消息重新放入channel的内存或磁盘队列中。</p>
+<p>如果NSQD收到了来自客户端的TOUCH命令，会把消息的超时时间进行重置。</p>
+<p>如果在超时时间段范围内，没有收到任何来自客户端的消息，NSQD会在queueScanLoop中会启动多个queueScanWorker协程来对消息重新进行处理。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(n *NSQD)</span> <span class="title">queueScanWorker</span><span class="params">(workCh <span class="keyword">chan</span> *Channel, responseCh <span class="keyword">chan</span> <span class="keyword">bool</span>, closeCh <span class="keyword">chan</span> <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		<span class="keyword">select</span> &#123;</span><br><span class="line">		<span class="keyword">case</span> c := &lt;-workCh:</span><br><span class="line">			<span class="comment">// 处理相应channel的in-flight queue 和 deferred queue</span></span><br><span class="line">			now := time.Now().UnixNano()</span><br><span class="line">			dirty := <span class="literal">false</span></span><br><span class="line">			<span class="comment">// 处理超时消息</span></span><br><span class="line">			<span class="keyword">if</span> c.processInFlightQueue(now) &#123;</span><br><span class="line">				dirty = <span class="literal">true</span></span><br><span class="line">			&#125;</span><br><span class="line">			<span class="comment">// 处理延迟消息</span></span><br><span class="line">			<span class="keyword">if</span> c.processDeferredQueue(now) &#123;</span><br><span class="line">				dirty = <span class="literal">true</span></span><br><span class="line">			&#125;</span><br><span class="line">			responseCh &lt;- dirty</span><br><span class="line">		<span class="comment">// 如果某个协程不幸收到了closeCh的消息，则关闭</span></span><br><span class="line">		<span class="keyword">case</span> &lt;-closeCh:</span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="reference"><a href="#reference" class="headerlink" title="reference"></a>reference</h4><ul>
+<li>NSQ源码 <a href="https://github.com/nsqio/nsq" target="_blank" rel="noopener">https://github.com/nsqio/nsq</a></li>
+</ul>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/NSQ/" rel="tag"># NSQ</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/11/29/nsq-pqueue/" rel="next" title="NSQ中的优先级队列">
+                <i class="fa fa-chevron-left"></i> NSQ中的优先级队列
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/12/17/redis-event/" rel="prev" title="Redis 客户端与服务器连接流程实例">
+                Redis 客户端与服务器连接流程实例 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image" src="/images/avatar.gif" alt="LiMingji">
+          <p class="site-author-name" itemprop="name">LiMingji</p>
+           
+              <p class="site-description motion-element" itemprop="description"></p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives/">
+                <span class="site-state-item-count">42</span>
+                <span class="site-state-item-name">日志</span>
+              </a>
+            </div>
+          
+
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">26</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#简介"><span class="nav-number">1.</span> <span class="nav-text">简介</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#NSQ消息Inflight机制流程图"><span class="nav-number">1.1.</span> <span class="nav-text">NSQ消息Inflight机制流程图</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#相关源码"><span class="nav-number">1.2.</span> <span class="nav-text">相关源码</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#reference"><span class="nav-number">1.3.</span> <span class="nav-text">reference</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">LiMingji</span>
+</div>
+
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+        
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.2"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://swanspouse.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'http://yoursite.com/2018/12/10/nsq-message-in-flight/';
+          this.page.identifier = '2018/12/10/nsq-message-in-flight/';
+          this.page.title = 'NSQ消息Inflight机制';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://swanspouse.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.2" rel="stylesheet" type="text/css">
+
+
+  <meta name="keywords" content="golang,gc,golang 内存管理模块,">
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.1.2">
+
+
+
+
+
+
+<meta name="description" content="内存管理对于内置runtime system的编程语言，通常会抛弃传统的内存分配方式，改为自主管理内存。这样可以完成类似预分配、内存池、垃圾回收等操作，以避开频繁地向操作系统申请、释放内存，产生过多的系统调用而导致的性能问题。 golang的runtime system同样实现了一套内存池机制，接管了所有的内存申请和释放的动作。 核心数据结构这里主要涉及的是golang 堆内存的管理，stack内">
+<meta name="keywords" content="golang,gc,golang 内存管理模块">
+<meta property="og:type" content="article">
+<meta property="og:title" content="golang堆内存管理">
+<meta property="og:url" content="http://yoursite.com/2018/08/22/golang-memory-model/index.html">
+<meta property="og:site_name" content="鸡蛋蛋🥚">
+<meta property="og:description" content="内存管理对于内置runtime system的编程语言，通常会抛弃传统的内存分配方式，改为自主管理内存。这样可以完成类似预分配、内存池、垃圾回收等操作，以避开频繁地向操作系统申请、释放内存，产生过多的系统调用而导致的性能问题。 golang的runtime system同样实现了一套内存池机制，接管了所有的内存申请和释放的动作。 核心数据结构这里主要涉及的是golang 堆内存的管理，stack内">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:image" content="https://s1.imgsha.com/2018/08/22/1aPAcC.png">
+<meta property="og:image" content="https://s1.imgsha.com/2018/08/22/1aPKq2.png">
+<meta property="og:updated_time" content="2019-05-19T02:32:11.950Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="golang堆内存管理">
+<meta name="twitter:description" content="内存管理对于内置runtime system的编程语言，通常会抛弃传统的内存分配方式，改为自主管理内存。这样可以完成类似预分配、内存池、垃圾回收等操作，以避开频繁地向操作系统申请、释放内存，产生过多的系统调用而导致的性能问题。 golang的runtime system同样实现了一套内存池机制，接管了所有的内存申请和释放的动作。 核心数据结构这里主要涉及的是golang 堆内存的管理，stack内">
+<meta name="twitter:image" content="https://s1.imgsha.com/2018/08/22/1aPAcC.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    sidebar: {"position":"left","display":"hide","offset":12,"offset_float":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2018/08/22/golang-memory-model/">
+
+
+
+
+
+  <title>golang堆内存管理 | 鸡蛋蛋🥚</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">鸡蛋蛋🥚</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br>
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-booklist">
+          <a href="/booklist/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-book"></i> <br>
+            
+            书单
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br>
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2018/08/22/golang-memory-model/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="LiMingji">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="鸡蛋蛋🥚">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">golang堆内存管理</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-08-22T00:03:03+08:00">
+                2018-08-22
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/08/22/golang-memory-model/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2018/08/22/golang-memory-model/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h3 id="内存管理"><a href="#内存管理" class="headerlink" title="内存管理"></a>内存管理</h3><p>对于内置runtime system的编程语言，通常会抛弃传统的内存分配方式，改为自主管理内存。这样可以完成类似预分配、内存池、垃圾回收等操作，以避开频繁地向操作系统申请、释放内存，产生过多的系统调用而导致的性能问题。</p>
+<p>golang的runtime system同样实现了一套内存池机制，接管了所有的内存申请和释放的动作。</p>
+<h3 id="核心数据结构"><a href="#核心数据结构" class="headerlink" title="核心数据结构"></a>核心数据结构</h3><p>这里主要涉及的是golang 堆内存的管理，stack内存的管理相对来说比较简单，因为stack中的对象生命周期有限，随着退栈所有对象都会被释放。</p>
+<p>golang 堆内存的主要数据结构:</p>
+<ul>
+<li>mheap: mheap管理向os申请、释放、组织mspan；</li>
+<li>mcentral: mcentral按照自己管理的块大小将mspan分配给mcache；</li>
+<li>mspan: mspan是数据的实际存储区域，按照mcentral管理的块规格(class)被切分成小块。</li>
+<li>mcache: mcache中的alloc管理不同规格(class)的mspan：规格相同的mspan被链接到同一个链表中。</li>
+</ul>
+<p><img src="https://s1.imgsha.com/2018/08/22/1aPAcC.png" alt="go heap model"></p>
+<p><img src="https://s1.imgsha.com/2018/08/22/1aPKq2.png" alt="mcache"></p>
+<h3 id="内存分配算法"><a href="#内存分配算法" class="headerlink" title="内存分配算法"></a>内存分配算法</h3><p>为提高内存分配的效率，针对不同的对象大小，golang runtime system采用了不同的分配策略。</p>
+<h4 id="tiny-object-allocation"><a href="#tiny-object-allocation" class="headerlink" title="tiny object allocation"></a>tiny object allocation</h4><p>对于小于maxTinySize(16B)字节对象的内存分配请求。go采取了将小对象合并存储的解决方案。在线程的本地缓存中维护了专门的区域(mcache.tiny)来存储tiny object。</p>
+<p>在请求tiny object内存分配的时候，首先查看mcache.tiny的剩余空间是否能够满足tiny object对象的分配。如果足够则直接返回；如果mcache.tiny的内存不够分配，则需要向上一届mcache, mcentral, mheap, system依次申请内存，然后再分配。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">if</span> noscan &amp;&amp; size &lt; maxTinySize &#123;</span><br><span class="line">	off := c.tinyoffset</span><br><span class="line">	<span class="comment">// Align tiny pointer for required (conservative) alignment.</span></span><br><span class="line">	<span class="comment">// 实际上占用的内存地址会按照一定的规则进行对齐</span></span><br><span class="line">	<span class="comment">//   1. 如果大于等于8B，按照8B对齐；</span></span><br><span class="line">	<span class="comment">//   2. 如果大于4B小于8B，按照4B对齐；</span></span><br><span class="line">	<span class="comment">//   3. 如果大于1B小于4B，按照2B对齐；</span></span><br><span class="line">	<span class="comment">//   4. 对于1B对象，无对齐要求； TODO lmj 其实没有太理解这里为啥能够按照上面说的方式进行对齐。</span></span><br><span class="line">	<span class="keyword">if</span> size&amp;<span class="number">7</span> == <span class="number">0</span> &#123;</span><br><span class="line">		off = round(off, <span class="number">8</span>)</span><br><span class="line">	&#125; <span class="keyword">else</span> <span class="keyword">if</span> size&amp;<span class="number">3</span> == <span class="number">0</span> &#123;</span><br><span class="line">		off = round(off, <span class="number">4</span>)</span><br><span class="line">	&#125; <span class="keyword">else</span> <span class="keyword">if</span> size&amp;<span class="number">1</span> == <span class="number">0</span> &#123;</span><br><span class="line">		off = round(off, <span class="number">2</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">/* 在c.tiny!=0且mcache中已分配tiny object内存+要分配size &lt;= maxTinySize的时候，</span></span><br><span class="line"><span class="comment">	直接在mcache分配。</span></span><br><span class="line"><span class="comment">	*/</span></span><br><span class="line">	<span class="keyword">if</span> off+size &lt;= maxTinySize &amp;&amp; c.tiny != <span class="number">0</span> &#123;</span><br><span class="line">		<span class="comment">// The object fits into existing tiny block.</span></span><br><span class="line">		<span class="comment">// x就是分配出去的内存块的首地址</span></span><br><span class="line">		x = unsafe.Pointer(c.tiny + off)</span><br><span class="line">		<span class="comment">// 将c.tinyoffset向后移，表示size已被分配</span></span><br><span class="line">		c.tinyoffset = off + size</span><br><span class="line">		c.local_tinyallocs++</span><br><span class="line">		mp.mallocing = <span class="number">0</span></span><br><span class="line">		releasem(mp)</span><br><span class="line">		<span class="keyword">return</span> x</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// Allocate a new maxTinySize block.</span></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	由于mcache是一个数组+链表的结构。所以这一步是直接根据spanClass(span的规格)获取到数组中链表的头指针。</span></span><br><span class="line"><span class="comment">	也就是符合规格span中打头的第一个。然后沿着个span遍历链表，找到第一个符合条件的span。</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	span := c.alloc[tinySpanClass]</span><br><span class="line">	<span class="comment">// 这里尝试在mcache中获取，也就是从span开始遍历链表</span></span><br><span class="line">	v := nextFreeFast(span)</span><br><span class="line">	<span class="comment">// v == 0 说明在链表中没有找到合适规格的span</span></span><br><span class="line">	<span class="keyword">if</span> v == <span class="number">0</span> &#123;</span><br><span class="line">		<span class="comment">// 如果第一次没有获取到，那么则尝试向mcentral来进行获取</span></span><br><span class="line">		v, _, shouldhelpgc = c.nextFree(tinySpanClass)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 分配内存的首地址</span></span><br><span class="line">	x = unsafe.Pointer(v)</span><br><span class="line">	<span class="comment">// 把地址置零值 64/8 = 8B，两个8B=16B，所以现在每申请一个tinySpan都是一个16B的内存</span></span><br><span class="line">	(*[<span class="number">2</span>]<span class="keyword">uint64</span>)(x)[<span class="number">0</span>] = <span class="number">0</span></span><br><span class="line">	(*[<span class="number">2</span>]<span class="keyword">uint64</span>)(x)[<span class="number">1</span>] = <span class="number">0</span></span><br><span class="line">	<span class="comment">// See if we need to replace the existing tiny block with the new one</span></span><br><span class="line">	<span class="comment">// based on amount of remaining free space.</span></span><br><span class="line">	<span class="comment">// 根据剩余的free space，判断是否需要用新的tiny block来替代老的tiny block</span></span><br><span class="line">	<span class="keyword">if</span> size &lt; c.tinyoffset || c.tiny == <span class="number">0</span> &#123;</span><br><span class="line">		c.tiny = <span class="keyword">uintptr</span>(x)</span><br><span class="line">		c.tinyoffset = size</span><br><span class="line">	&#125;</span><br><span class="line">	size = maxTinySize</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="big-object-allocation"><a href="#big-object-allocation" class="headerlink" title="big object allocation"></a>big object allocation</h4><p>对于32KB的对象，跳过mcache和mcentral，直接在mheap上进行分配。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> s *mspan</span><br><span class="line"><span class="comment">// 大对象直接在mheap上进行分配，必定是一次heavy的操作，所以这里shouldhelpgc直接被置为true</span></span><br><span class="line">shouldhelpgc = <span class="literal">true</span></span><br><span class="line">systemstack(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">  <span class="comment">// 大对象分配</span></span><br><span class="line">  s = largeAlloc(size, needzero, noscan)</span><br><span class="line">&#125;)</span><br><span class="line">s.freeindex = <span class="number">1</span></span><br><span class="line">s.allocCount = <span class="number">1</span></span><br><span class="line">x = unsafe.Pointer(s.base())</span><br><span class="line">size = s.elemsize</span><br></pre></td></tr></table></figure>
+<h4 id="small-object-allocation"><a href="#small-object-allocation" class="headerlink" title="small object allocation"></a>small object allocation</h4><p>对于 &gt;=16B &amp;&amp; &lt;= 32KB的对象</p>
+<ul>
+<li>如果 mcache 对应的 size class 的 span 已经没有可用的块，则向 mcentral 请求。</li>
+<li>如果 mcentral 也没有可用的块，则向 mheap 申请，并切分。</li>
+<li>如果 mheap 也没有合适的 span，则向操作系统申请。</li>
+</ul>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 找到合适的sizeclass(规格)，这里的处理方式很巧妙</span></span><br><span class="line"><span class="keyword">var</span> sizeclass <span class="keyword">uint8</span></span><br><span class="line"><span class="keyword">if</span> size &lt;= smallSizeMax<span class="number">-8</span> &#123;</span><br><span class="line">  sizeclass = size_to_class8[(size+smallSizeDiv<span class="number">-1</span>)/smallSizeDiv]</span><br><span class="line">&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">  sizeclass = size_to_class128[(size-smallSizeMax+largeSizeDiv<span class="number">-1</span>)/largeSizeDiv]</span><br><span class="line">&#125;</span><br><span class="line">size = <span class="keyword">uintptr</span>(class_to_size[sizeclass])</span><br><span class="line">spc := makeSpanClass(sizeclass, noscan)</span><br><span class="line">span := c.alloc[spc]</span><br><span class="line"><span class="comment">// 和上面tiny object的分配采用同样的方法。向mcache,mcentral,mheap,os依次进行申请。</span></span><br><span class="line">v := nextFreeFast(span)</span><br><span class="line"><span class="keyword">if</span> v == <span class="number">0</span> &#123;</span><br><span class="line">  v, span, shouldhelpgc = c.nextFree(spc)</span><br><span class="line">&#125;</span><br><span class="line">x = unsafe.Pointer(v)</span><br><span class="line"><span class="keyword">if</span> needzero &amp;&amp; span.needzero != <span class="number">0</span> &#123;</span><br><span class="line">  <span class="comment">// 对申请到的地址进行清零</span></span><br><span class="line">  memclrNoHeapPointers(unsafe.Pointer(v), size)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="reference"><a href="#reference" class="headerlink" title="reference"></a>reference</h3><ul>
+<li>golang soruce code 1.10</li>
+<li><a href="https://tracymacding.gitbooks.io/implementation-of-golang/content/" target="_blank" rel="noopener">https://tracymacding.gitbooks.io/implementation-of-golang/content/</a></li>
+<li><a href="http://legendtkl.com/2017/04/02/golang-alloc/" target="_blank" rel="noopener">http://legendtkl.com/2017/04/02/golang-alloc/</a></li>
+</ul>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/golang/" rel="tag"># golang</a>
+          
+            <a href="/tags/gc/" rel="tag"># gc</a>
+          
+            <a href="/tags/golang-内存管理模块/" rel="tag"># golang 内存管理模块</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/08/21/golang-escape-analysis/" rel="next" title="golang逃逸分析">
+                <i class="fa fa-chevron-left"></i> golang逃逸分析
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/08/22/golang-memory-manage-route-map/" rel="prev" title="golang 内存管理提纲">
+                golang 内存管理提纲 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image" src="/images/avatar.gif" alt="LiMingji">
+          <p class="site-author-name" itemprop="name">LiMingji</p>
+           
+              <p class="site-description motion-element" itemprop="description"></p>
+          
+        </div>
+        <nav class="site-state motion-element">
+
+          
+            <div class="site-state-item site-state-posts">
+              <a href="/archives/">
+                <span class="site-state-item-count">42</span>
+                <span class="site-state-item-name">日志</span>
+              </a>
+            </div>
+          
+
+          
+
+          
+            
+            
+            <div class="site-state-item site-state-tags">
+              <a href="/tags/index.html">
+                <span class="site-state-item-count">26</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+
+        
+        
+
+        
+
+
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#内存管理"><span class="nav-number">1.</span> <span class="nav-text">内存管理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#核心数据结构"><span class="nav-number">2.</span> <span class="nav-text">核心数据结构</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#内存分配算法"><span class="nav-number">3.</span> <span class="nav-text">内存分配算法</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#tiny-object-allocation"><span class="nav-number">3.1.</span> <span class="nav-text">tiny object allocation</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#big-object-allocation"><span class="nav-number">3.2.</span> <span class="nav-text">big object allocation</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#small-object-allocation"><span class="nav-number">3.3.</span> <span class="nav-text">small object allocation</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#reference"><span class="nav-number">4.</span> <span class="nav-text">reference</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">LiMingji</span>
+</div>
+
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+        
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.2"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.2"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://swanspouse.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'http://yoursite.com/2018/08/22/golang-memory-model/';
+          this.page.identifier = '2018/08/22/golang-memory-model/';
+          this.page.title = 'golang堆内存管理';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://swanspouse.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
