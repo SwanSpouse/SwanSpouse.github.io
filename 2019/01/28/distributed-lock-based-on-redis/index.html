@@ -78,7 +78,7 @@
 <link href="/css/main.css?v=5.1.2" rel="stylesheet" type="text/css">
 
 
-  <meta name="keywords" content="distributed system,distributed lock,redis,">
+  <meta name="keywords" content="distributed system,redis,distributed lock,">
 
 
 
@@ -95,7 +95,7 @@
 
 
 <meta name="description" content="具体实现获取锁： 1SET resource_name my_random_value NX PX 30000 上面的命令如果执行成功，则客户端成功获取到了锁，接下来就可以访问共享资源了；而如果上面的命令执行失败，则说明获取锁失败。 注意，在上面的SET命令中：  my_random_value是由客户端生成的一个随机字符串，它要保证在足够长的一段时间内在所有客户端的所有获取锁的请求中都是唯一的。">
-<meta name="keywords" content="distributed system,distributed lock,redis">
+<meta name="keywords" content="distributed system,redis,distributed lock">
 <meta property="og:type" content="article">
 <meta property="og:title" content="基于单Redis节点的分布式锁">
 <meta property="og:url" content="http://yoursite.com/2019/01/28/distributed-lock-based-on-redis/index.html">
@@ -427,9 +427,9 @@
           
             <a href="/tags/distributed-system/" rel="tag"># distributed system</a>
           
-            <a href="/tags/distributed-lock/" rel="tag"># distributed lock</a>
-          
             <a href="/tags/redis/" rel="tag"># redis</a>
+          
+            <a href="/tags/distributed-lock/" rel="tag"># distributed lock</a>
           
         </div>
       
@@ -536,7 +536,7 @@
           
             <div class="site-state-item site-state-posts">
               <a href="/archives/">
-                <span class="site-state-item-count">42</span>
+                <span class="site-state-item-count">43</span>
                 <span class="site-state-item-name">日志</span>
               </a>
             </div>

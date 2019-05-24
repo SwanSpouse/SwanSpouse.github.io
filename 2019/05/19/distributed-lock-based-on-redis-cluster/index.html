@@ -78,7 +78,7 @@
 <link href="/css/main.css?v=5.1.2" rel="stylesheet" type="text/css">
 
 
-  <meta name="keywords" content="distributed system,distributed lock,redis,">
+  <meta name="keywords" content="distributed system,redis,distributed lock,">
 
 
 
@@ -95,7 +95,7 @@
 
 
 <meta name="description" content="分布式锁 Redlock由于前面介绍的基于单Redis节点的分布式锁在failover的时候会产生解决不了的安全性问题，因此antirez提出了新的分布式锁的算法Redlock，它基于N个完全独立的Redis节点（通常情况下N可以设置成5）。 运行Redlock算法的客户端依次执行下面各个步骤，来完成获取锁的操作：  获取当前时间（毫秒数）。  按顺序依次向N个Redis节点执行获取锁的操作。这个">
-<meta name="keywords" content="distributed system,distributed lock,redis">
+<meta name="keywords" content="distributed system,redis,distributed lock">
 <meta property="og:type" content="article">
 <meta property="og:title" content="基于Redis集群的分布式锁">
 <meta property="og:url" content="http://yoursite.com/2019/05/19/distributed-lock-based-on-redis-cluster/index.html">
@@ -498,9 +498,9 @@
           
             <a href="/tags/distributed-system/" rel="tag"># distributed system</a>
           
-            <a href="/tags/distributed-lock/" rel="tag"># distributed lock</a>
-          
             <a href="/tags/redis/" rel="tag"># redis</a>
+          
+            <a href="/tags/distributed-lock/" rel="tag"># distributed lock</a>
           
         </div>
       
@@ -513,8 +513,8 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/2019/01/30/mysql-sql/" rel="next" title="SQL语句执行顺序">
-                <i class="fa fa-chevron-left"></i> SQL语句执行顺序
+              <a href="/2019/05/19/raft/" rel="next" title="raft协议">
+                <i class="fa fa-chevron-left"></i> raft协议
               </a>
             
           </div>
@@ -607,7 +607,7 @@
           
             <div class="site-state-item site-state-posts">
               <a href="/archives/">
-                <span class="site-state-item-count">42</span>
+                <span class="site-state-item-count">43</span>
                 <span class="site-state-item-name">日志</span>
               </a>
             </div>

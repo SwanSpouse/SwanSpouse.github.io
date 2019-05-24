@@ -102,7 +102,7 @@
 <meta property="og:site_name" content="鸡蛋蛋🥚">
 <meta property="og:description" content="拜占庭将军问题(byzantine-generals-problem)是Leslie Lamport（2013年的图灵奖得主）用来为描述分布式系统一致性问题（Distributed Consensus）在论文中抽象出来一个著名的例子。 拜占庭帝国想要进攻一个强大的敌人，为此派出了10支军队去包围这个敌人。这个敌人虽不比拜占庭帝国，但也足以抵御5支常规拜占庭军队的同时袭击。这10支军队在分开包围状态">
 <meta property="og:locale" content="zh-Hans">
-<meta property="og:updated_time" content="2019-05-19T02:32:11.946Z">
+<meta property="og:updated_time" content="2019-05-24T12:16:00.524Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="拜占庭将军问题">
 <meta name="twitter:description" content="拜占庭将军问题(byzantine-generals-problem)是Leslie Lamport（2013年的图灵奖得主）用来为描述分布式系统一致性问题（Distributed Consensus）在论文中抽象出来一个著名的例子。 拜占庭帝国想要进攻一个强大的敌人，为此派出了10支军队去包围这个敌人。这个敌人虽不比拜占庭帝国，但也足以抵御5支常规拜占庭军队的同时袭击。这10支军队在分开包围状态">
@@ -369,6 +369,7 @@
 </ol>
 <p>PS: 这里的消息可以被篡改和信息论中的信息被篡改是不一样的。在信息论中消息可以通过纠错码、校验码来对消息是否被篡改过进行验证，甚至通过纠错码来进行纠错。但是这里的被篡改是逻辑层被篡改，可以理解为是假消息，纠错码、校验码可以保证信道的质量，但是无法保证逻辑层消息被篡改。</p>
 <h4 id="拜占庭问题的前提"><a href="#拜占庭问题的前提" class="headerlink" title="拜占庭问题的前提"></a>拜占庭问题的前提</h4><p>拜占庭将军问题中并不去考虑通信兵是否会被截获或无法传达信息等问题，即<em>消息传递的信道绝无问题</em>。(Lamport已经证明了在消息可能丢失的不可靠信道上试图通过消息传递的方式达到一致性是不可能的)。所以，在研究拜占庭将军问题的时候，已经假定了信道是没有问题的（消息可以被篡改、前后不一致，但是够保证不丢失）。</p>
+<p>Q:这里保留一个疑问就是为啥要求消息能够保证不丢失？保证不丢失是说能够保持连接是吧。不是掉线了之后再也不能恢复了。</p>
 <h4 id="问题分析"><a href="#问题分析" class="headerlink" title="问题分析"></a>问题分析</h4><ul>
 <li><p>先看在没有叛徒情况下，假如一个将军A提一个进攻提议（如：明日下午1点进攻，你愿意加入吗？）由通信兵通信分别告诉其他的将军，如果幸运中的幸运，他收到了其他5位将军以上的同意，发起进攻。如果不幸，其他的将军也在此时发出不同的进攻提议（如：明日下午2点、3点进攻，你愿意加入吗？），由于时间上的差异，不同的将军收到（并认可）的进攻提议可能是不一样的，这时可能出现A提议有3个支持者，B提议有4个支持者，C提议有2个支持者等等。</p>
 </li>
@@ -505,7 +506,7 @@
           
             <div class="site-state-item site-state-posts">
               <a href="/archives/">
-                <span class="site-state-item-count">42</span>
+                <span class="site-state-item-count">43</span>
                 <span class="site-state-item-name">日志</span>
               </a>
             </div>
